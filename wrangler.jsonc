@@ -4,7 +4,7 @@
  */
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "prm-finance",
+	"name": "prm-finance-billing",
 	"main": "worker/index.ts",
 	"compatibility_date": "2026-08-17",
 	"preview_urls": true,
