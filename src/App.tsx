@@ -12,7 +12,7 @@ function App() {
 
   return (
     <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
-      <h1>PRM Finance — работает</h1>
+      <h1>PRM Finance — скелет готов</h1>
       <p>Ответ /api/health: {health}</p>
     </div>
   )
