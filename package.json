@@ -12,6 +12,7 @@
     "cf-typegen": "wrangler types"
   },
   "dependencies": {
+    "@noble/hashes": "^2.3.0",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.13.4",
     "react": "^19.2.8",

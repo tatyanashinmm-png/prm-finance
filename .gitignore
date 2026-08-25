@@ -29,3 +29,7 @@ dist-ssr
 !.dev.vars.example
 .env*
 !.env.example
+
+# временные файлы scripts/create-user.mjs и scripts/reset-password.mjs
+# (в норме удаляются сами; на случай, если процесс прервали)
+scripts/.tmp-*.sql
