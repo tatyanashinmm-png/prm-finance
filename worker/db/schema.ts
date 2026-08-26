@@ -7,6 +7,7 @@ export const contracts = sqliteTable("contracts", {
   legalEntity: text("legal_entity"),
   status: text("status"),
   manager: text("manager"),
+  note: text("note"),
   updatedAt: text("updated_at").notNull(),
 });
 
@@ -26,7 +27,6 @@ export const invoices = sqliteTable(
       .notNull()
       .references(() => periods.id),
     invoiceAmount: real("invoice_amount").notNull(),
-    invoiceNumber: text("invoice_number"),
     paidStatus: text("paid_status"),
     updatedAt: text("updated_at").notNull(),
   },

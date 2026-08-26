@@ -33,3 +33,7 @@ dist-ssr
 # временные файлы scripts/create-user.mjs и scripts/reset-password.mjs
 # (в норме удаляются сами; на случай, если процесс прервали)
 scripts/.tmp-*.sql
+
+# отчёт импорта содержит реальные данные клиентов — никогда не коммитить
+/import-report.txt
+/diagnostic-report.txt

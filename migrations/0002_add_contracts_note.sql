@@ -1,0 +1,1 @@
+ALTER TABLE `contracts` ADD `note` text;

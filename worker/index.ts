@@ -130,8 +130,16 @@ app.get("*", async (c) => {
   const path = new URL(c.req.url).pathname;
 
   // Файлы статики (js/css/svg/иконки и т.д.) отдаём всегда — иначе даже
-  // страница входа не сможет загрузить свой собственный код.
-  if (path !== "/" && ASSET_FILE_RE.test(path)) {
+  // страница входа не сможет загрузить свой собственный код. В dev-режиме
+  // Vite также подгружает служебные модули без расширения в пути
+  // (например /@vite/client, /@react-refresh) — их регэксп по расширению
+  // не ловит, поэтому дополнительно смотрим на Sec-Fetch-Mode: браузер
+  // ставит "navigate" только для прямого перехода по адресу, а не для
+  // подгрузки скриптов/стилей/шрифтов внутри уже открытой страницы.
+  const fetchMode = c.req.header("Sec-Fetch-Mode");
+  const isSubResource =
+    (path !== "/" && ASSET_FILE_RE.test(path)) || (fetchMode !== undefined && fetchMode !== "navigate");
+  if (isSubResource) {
     return c.env.ASSETS.fetch(c.req.raw);
   }
 
