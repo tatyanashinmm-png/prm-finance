@@ -35,6 +35,26 @@ export const invoices = sqliteTable(
   ],
 );
 
+// История тарифа контракта. Сейчас 1 контракт = 1 подписка = 1 тариф —
+// сущность "подписка" отдельно не заводим. Натуральный ключ — пара
+// (contract_id, effective_from): сейчас ровно одна запись на контракт,
+// в будущем при смене тарифа появится новая запись с более поздней датой,
+// апдейт той же даты — обновление существующей строки, не дубль.
+export const tariffs = sqliteTable(
+  "tariffs",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    contractId: integer("contract_id")
+      .notNull()
+      .references(() => contracts.id),
+    tariff: real("tariff").notNull(),
+    effectiveFrom: text("effective_from").notNull(),
+  },
+  (table) => [
+    uniqueIndex("tariffs_contract_effective_unique").on(table.contractId, table.effectiveFrom),
+  ],
+);
+
 export const USER_ROLES = ["admin", "finance", "manager", "viewer"] as const;
 export type UserRole = (typeof USER_ROLES)[number];
 
