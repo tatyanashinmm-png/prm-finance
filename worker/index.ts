@@ -2,6 +2,7 @@ import { Hono, type Context, type Next } from "hono";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import {
   getContracts,
+  getMonthlyInvoices,
   getUserByUsername,
   getUserBySessionTokenHash,
   registerFailedLogin,
@@ -10,6 +11,7 @@ import {
   deleteSessionByTokenHash,
 } from "./db/index.ts";
 import type { UserRole } from "./db/schema.ts";
+import { computeMonthlyMetrics } from "./core/mrr.mjs";
 import { verifyPassword, DUMMY_HASH } from "./auth/password.ts";
 import {
   generateSessionToken,
@@ -120,6 +122,21 @@ app.get("/api/auth/me", requireAuth, (c) => {
 app.get("/api/contracts", requireAuth, async (c) => {
   const contracts = await getContracts(c.env);
   return c.json({ contracts });
+});
+
+app.get("/api/metrics/monthly", requireAuth, async (c) => {
+  const invoices = await getMonthlyInvoices(c.env);
+  const byPeriod = computeMonthlyMetrics(invoices);
+  const months = [...byPeriod.values()]
+    .sort((a, b) => a.periodStart.localeCompare(b.periodStart))
+    .map((m) => ({
+      period_start: m.periodStart,
+      issued_amount: m.issuedAmount,
+      issued_count: m.issuedCount,
+      paid_count: m.paidCount,
+      mrr: m.mrr,
+    }));
+  return c.json({ months });
 });
 
 // --- страница приложения: без валидной сессии редиректим на /login ---

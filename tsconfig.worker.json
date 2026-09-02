@@ -3,6 +3,11 @@
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.worker.tsbuildinfo",
     "types": ["./worker-configuration.d.ts", "vite/client"],
+    // worker/core/*.mjs — чистое ядро на JS (не трогаем по правилам задачи).
+    // allowJs позволяет TS-файлам импортировать их и выводить типы из JSDoc,
+    // где он есть. checkJs НЕ включаем — иначе tsc начнёт требовать полную
+    // типизацию во всех .mjs ядра (arpu.mjs/movement.mjs это не задача).
+    "allowJs": true,
   },
   "include": ["worker"]
 }

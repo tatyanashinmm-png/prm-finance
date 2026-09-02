@@ -28,6 +28,21 @@ export async function getContracts(env: DbEnv) {
     .all();
 }
 
+// Форма строк — ровно InvoiceRow, которую ожидает worker/core/mrr.mjs
+// (periodStart/invoiceAmount/paidStatus), чтобы маршрут мог передать
+// результат прямо в ядро без дополнительного маппинга.
+export async function getMonthlyInvoices(env: DbEnv) {
+  return client(env)
+    .select({
+      periodStart: schema.periods.periodStart,
+      invoiceAmount: schema.invoices.invoiceAmount,
+      paidStatus: schema.invoices.paidStatus,
+    })
+    .from(schema.invoices)
+    .innerJoin(schema.periods, eq(schema.invoices.periodId, schema.periods.id))
+    .all();
+}
+
 // --- Пользователи и сессии ---
 
 export const LOGIN_LOCK_THRESHOLD = 5;
