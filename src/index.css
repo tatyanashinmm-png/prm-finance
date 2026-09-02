@@ -1,111 +1,363 @@
+/* Дизайн-токены PRM Finance — переиспользуются всеми вкладками витрины. */
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  --color-navy: #212243;
+  --color-blue: #0c39ff;
+  --color-orange: #ff9900;
+  --color-green: #16a34a;
+  --color-red: #ff5d5d;
+  --color-lavender: #a7aafc;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  --color-bg: #f5f6fb;
+  --color-surface: #ffffff;
+  --color-border: #e3e5f2;
+  --color-text: #1a1b2e;
+  --color-text-secondary: #6b6e85;
+  --color-text-inverse: #ffffff;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
+  --font-sans: 'Golos Text', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --radius: 14px;
+  --radius-sm: 8px;
+  --shadow-card: 0 1px 2px rgba(33, 34, 67, 0.05), 0 8px 24px rgba(33, 34, 67, 0.06);
+
+  color-scheme: light;
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  background: var(--color-bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
-}
-
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
+* {
   box-sizing: border-box;
 }
 
 body {
   margin: 0;
+  min-height: 100svh;
+}
+
+#root {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
 }
 
 h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+h2,
+h3 {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
 }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
 p {
   margin: 0;
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+button {
+  font-family: var(--font-sans);
 }
 
-code {
+input {
+  font-family: var(--font-sans);
+}
+
+/* --- верхняя навигация --- */
+.top-nav {
+  background: var(--color-navy);
+  color: var(--color-text-inverse);
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  height: 60px;
+  flex: none;
+}
+
+.top-nav__brand {
+  font-weight: 700;
+  font-size: 17px;
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+}
+
+.top-nav__tabs {
+  display: flex;
+  gap: 4px;
+  height: 100%;
+  overflow-x: auto;
+}
+
+.top-nav__tab {
+  appearance: none;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: rgba(255, 255, 255, 0.62);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 0 4px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+
+.top-nav__tab:hover:not(:disabled) {
+  color: var(--color-text-inverse);
+}
+
+.top-nav__tab:disabled {
+  cursor: default;
+  color: rgba(255, 255, 255, 0.28);
+}
+
+.top-nav__tab--active {
+  color: var(--color-text-inverse);
+  border-bottom-color: var(--color-orange);
+}
+
+.top-nav__spacer {
+  flex: 1;
+}
+
+.top-nav__user {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.75);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.top-nav__logout {
+  appearance: none;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: var(--color-text-inverse);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.top-nav__logout:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+/* --- содержимое страницы --- */
+.page {
+  flex: 1;
+  padding: 28px 32px 48px;
+  max-width: 1080px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.page__title {
+  font-size: 22px;
+  margin-bottom: 20px;
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 20px 24px;
+}
+
+.card + .card {
+  margin-top: 20px;
+}
+
+.card__title {
   font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 16px;
+}
+
+.state-msg {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  padding: 24px 0;
+}
+
+.state-msg--error {
+  color: var(--color-red);
+}
+
+/* --- таблица-расшифровка --- */
+.metrics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.metrics-table th,
+.metrics-table td {
+  text-align: right;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.metrics-table th:first-child,
+.metrics-table td:first-child {
+  text-align: left;
+}
+
+.metrics-table th {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.metrics-table tbody tr:hover {
+  background: var(--color-bg);
+}
+
+.metrics-table td:last-child {
+  color: var(--color-green);
+  font-weight: 600;
+}
+
+.metrics-table__ratio {
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-tooltip {
+  background: var(--color-navy);
+  color: var(--color-text-inverse);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 13px;
+  box-shadow: var(--shadow-card);
+}
+
+.chart-tooltip__month {
+  font-weight: 600;
+  margin-bottom: 4px;
+  text-transform: capitalize;
+}
+
+.chart-tooltip__value {
+  color: var(--color-lavender);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- список контрактов --- */
+.contracts-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.contracts-list li {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 14px;
+}
+
+.contracts-list li:last-child {
+  border-bottom: none;
+}
+
+.contracts-list .contract-num {
+  color: var(--color-blue);
+  font-weight: 600;
+  margin-right: 8px;
+}
+
+/* --- форма входа --- */
+.login-screen {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 340px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 32px;
+}
+
+.login-card h1 {
+  font-size: 20px;
+  margin-bottom: 20px;
+}
+
+.field {
+  margin-bottom: 14px;
+}
+
+.field label {
+  display: block;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin-bottom: 6px;
+}
+
+.field input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+
+.field input:focus {
+  outline: none;
+  border-color: var(--color-blue);
+  box-shadow: 0 0 0 3px rgba(12, 57, 255, 0.12);
+}
+
+.btn-primary {
+  width: 100%;
+  appearance: none;
+  border: none;
+  background: var(--color-blue);
+  color: var(--color-text-inverse);
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  padding: 11px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.btn-primary:hover {
+  opacity: 0.92;
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.login-error {
+  color: var(--color-red);
+  font-size: 13px;
+  margin: 4px 0 14px;
 }

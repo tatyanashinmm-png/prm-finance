@@ -1,10 +1,7 @@
 import { useEffect, useState } from 'react'
-
-interface Contract {
-  id: number
-  contractNum: string
-  clientName: string
-}
+import { TopNav, type TabId } from './components/TopNav'
+import { MrrPage } from './pages/MrrPage'
+import { ContractsPage } from './pages/ContractsPage'
 
 interface AuthedUser {
   username: string
@@ -41,57 +38,41 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
   }
 
   return (
-    <div style={{ padding: '2rem', fontFamily: 'sans-serif', maxWidth: 320 }}>
-      <h1>PRM Finance — вход</h1>
-      <form onSubmit={submit}>
-        <div style={{ marginBottom: '0.75rem' }}>
-          <label>
-            Логин
-            <br />
+    <div className="login-screen">
+      <div className="login-card">
+        <h1>PRM Finance — вход</h1>
+        <form onSubmit={submit}>
+          <div className="field">
+            <label htmlFor="login-username">Логин</label>
             <input
+              id="login-username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               autoComplete="username"
             />
-          </label>
-        </div>
-        <div style={{ marginBottom: '0.75rem' }}>
-          <label>
-            Пароль
-            <br />
+          </div>
+          <div className="field">
+            <label htmlFor="login-password">Пароль</label>
             <input
+              id="login-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
             />
-          </label>
-        </div>
-        {error && <p style={{ color: 'crimson' }}>{error}</p>}
-        <button type="submit" disabled={busy}>
-          {busy ? 'Входим…' : 'Войти'}
-        </button>
-      </form>
+          </div>
+          {error && <p className="login-error">{error}</p>}
+          <button type="submit" className="btn-primary" disabled={busy}>
+            {busy ? 'Входим…' : 'Войти'}
+          </button>
+        </form>
+      </div>
     </div>
   )
 }
 
 function Dashboard({ user, onLogout }: { user: AuthedUser; onLogout: () => void }) {
-  const [health, setHealth] = useState<string>('загрузка…')
-  const [contracts, setContracts] = useState<Contract[] | null>(null)
-  const [contractsError, setContractsError] = useState<string | null>(null)
-
-  useEffect(() => {
-    fetch('/api/health')
-      .then((res) => res.json())
-      .then((data) => setHealth(JSON.stringify(data)))
-      .catch((err) => setHealth('ошибка: ' + String(err)))
-
-    fetch('/api/contracts')
-      .then((res) => res.json())
-      .then((data) => setContracts(data.contracts))
-      .catch((err) => setContractsError(String(err)))
-  }, [])
+  const [tab, setTab] = useState<TabId>('mrr')
 
   const logout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' })
@@ -99,31 +80,11 @@ function Dashboard({ user, onLogout }: { user: AuthedUser; onLogout: () => void 
   }
 
   return (
-    <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <h1>PRM Finance — скелет готов</h1>
-        <div>
-          {user.username} ({user.role}) · <button onClick={logout}>Выйти</button>
-        </div>
-      </div>
-      <p>Ответ /api/health: {health}</p>
-
-      <h2>Контракты</h2>
-      {contractsError && <p>Ошибка: {contractsError}</p>}
-      {!contractsError && contracts === null && <p>Загрузка…</p>}
-      {contracts !== null && (
-        <>
-          <p>Всего контрактов: {contracts.length}</p>
-          <ul>
-            {contracts.map((c) => (
-              <li key={c.id}>
-                {c.contractNum} — {c.clientName}
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-    </div>
+    <>
+      <TopNav active={tab} onChange={setTab} username={user.username} role={user.role} onLogout={logout} />
+      {tab === 'mrr' && <MrrPage />}
+      {tab === 'contracts' && <ContractsPage />}
+    </>
   )
 }
 
@@ -158,8 +119,8 @@ function App() {
 
   if (state === 'loading') {
     return (
-      <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
-        <p>Загрузка…</p>
+      <div className="page">
+        <p className="state-msg">Загрузка…</p>
       </div>
     )
   }
