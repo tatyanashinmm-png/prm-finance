@@ -100,7 +100,16 @@ function buildInvoiceSql(inv) {
   );
 }
 
-function buildReport({ contracts, periods, invoiceRows, issues }) {
+function buildTariffSql(t) {
+  return (
+    `INSERT INTO tariffs (contract_id, tariff, effective_from) VALUES (` +
+    `(SELECT id FROM contracts WHERE contract_num = ${sqlQuote(t.contractNum)}), ` +
+    `${t.tariff}, ${sqlQuote(t.effectiveFrom)}) ` +
+    `ON CONFLICT(contract_id, effective_from) DO UPDATE SET tariff=excluded.tariff;`
+  );
+}
+
+function buildReport({ contracts, periods, invoiceRows, tariffs, issues }) {
   const lines = [];
   const p = (s = "") => lines.push(s);
 
@@ -121,8 +130,16 @@ function buildReport({ contracts, periods, invoiceRows, issues }) {
   p(`  заблокированных (ключ BLOCK-<имя>): ${blockedContracts.length}`);
   p(`Периодов загружено: ${periods.length}`);
   p(`Invoices загружено: ${invoiceRows.length}`);
+  p(`Тарифов (tariffs) загружено: ${tariffs.length} из ${contracts.length} контрактов`);
   p("");
   p(`Поле invoice_number: убрано из схемы и из всего кода импорта/чтения — в выводе ниже его нет.`);
+  p("");
+
+  p(`--- Контракты БЕЗ тарифа (колонка "АП" пуста/не число, ${issues.contractsWithoutTariff.length}) ---`);
+  if (issues.contractsWithoutTariff.length === 0) p("(нет)");
+  for (const t of issues.contractsWithoutTariff) {
+    p(`  строка ${t.row}: ${t.contractNum} — ${t.clientName}`);
+  }
   p("");
 
   p(`--- Дубли номеров контракта (активные, ${issues.duplicateContracts.length}) ---`);
@@ -202,6 +219,7 @@ async function main() {
   execSqlBatch(parsed.contracts.map(buildContractSql), "contracts", target);
   execSqlBatch(parsed.periods.map(buildPeriodSql), "periods", target);
   execSqlBatch(parsed.invoiceRows.map(buildInvoiceSql), "invoices", target);
+  execSqlBatch(parsed.tariffs.map(buildTariffSql), "tariffs", target);
   console.log(isRemote ? "Готово, записано в remote." : "Готово, remote не трогала.");
 
   const report = buildReport(parsed);

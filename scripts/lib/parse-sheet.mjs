@@ -97,6 +97,7 @@ export function parseSheet(values) {
     duplicateContracts: [],
     duplicateBlockedNames: [],
     unresolvedMonths: [],
+    contractsWithoutTariff: [],
   };
 
   // 1. Строка-заголовок: первая, где есть и "Клиент", и "ЮрЛицо"
@@ -118,6 +119,7 @@ export function parseSheet(values) {
   const colJur = header.findIndex((h) => h === "ЮрЛицо");
   const colManager = header.findIndex((h) => normLabel(h).startsWith("менеджер"));
   const colImportant = header.findIndex((h) => h.startsWith("Важно"));
+  const colTariff = header.findIndex((h) => h === "АП"); // месячный тариф ("абонплата")
   if (colClient < 0 || colContractNum < 0 || colJur < 0) {
     throw new Error("Не нашла обязательные колонки (Клиент / Номер контракта / ЮрЛицо)");
   }
@@ -266,6 +268,7 @@ export function parseSheet(values) {
           status,
           manager: colManager >= 0 ? norm(row[colManager]) || null : null,
           note: colImportant >= 0 ? norm(row[colImportant]) || null : null,
+          tariff: colTariff >= 0 ? toNum(row[colTariff]) : null,
           row: rowNum,
           rawRow: row,
         });
@@ -308,6 +311,7 @@ export function parseSheet(values) {
       status: norm(row[colStatus]) || null,
       manager: colManager >= 0 ? norm(row[colManager]) || null : null,
       note: colImportant >= 0 ? norm(row[colImportant]) || null : null,
+      tariff: colTariff >= 0 ? toNum(row[colTariff]) : null,
       row: rowNum,
     };
     // Более поздняя строка с тем же номером контракта побеждает (последняя
@@ -356,7 +360,7 @@ export function parseSheet(values) {
   for (const cand of blockedCandidates) {
     if (duplicateBlockedKeys.has(cand.contractNum)) continue;
     const { rawRow, row: rowNum, nameKey, ...contract } = cand;
-    contracts.push(contract);
+    contracts.push({ ...contract, row: rowNum });
     for (const inv of extractInvoiceRows(rawRow, cand.contractNum, rowNum)) {
       invoiceRows.push(inv);
       invoicesByPeriod.set(inv.periodStart, (invoicesByPeriod.get(inv.periodStart) || 0) + 1);
@@ -366,7 +370,26 @@ export function parseSheet(values) {
   // period создаём только если по нему есть хотя бы один счёт
   const periods = [...invoicesByPeriod.keys()].sort();
 
-  return { contracts, periods, invoiceRows, issues };
+  // Тариф на контракт (одна запись — effective_from = самый ранний период
+  // этого контракта, чтобы тариф покрывал всю его историю). Если "АП" пуст
+  // или не число — контракт в tariffs не попадает, только в отчёт.
+  const earliestPeriodByContract = new Map();
+  for (const inv of invoiceRows) {
+    const cur = earliestPeriodByContract.get(inv.contractNum);
+    if (!cur || inv.periodStart < cur) earliestPeriodByContract.set(inv.contractNum, inv.periodStart);
+  }
+  const tariffs = [];
+  for (const c of contracts) {
+    if (c.tariff === null || c.tariff === undefined) {
+      issues.contractsWithoutTariff.push({ contractNum: c.contractNum, clientName: c.clientName, row: c.row });
+      continue;
+    }
+    const effectiveFrom = earliestPeriodByContract.get(c.contractNum);
+    if (!effectiveFrom) continue; // теоретически невозможно (у контракта всегда есть ≥1 invoice), на всякий случай
+    tariffs.push({ contractNum: c.contractNum, tariff: c.tariff, effectiveFrom });
+  }
+
+  return { contracts, periods, invoiceRows, tariffs, issues };
 }
 
 function colLetter(n) {

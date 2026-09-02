@@ -54,12 +54,12 @@ async function getAccessToken(saJson) {
 
 // Возвращает values как из Sheets API: массив строк, каждая — массив ячеек,
 // UNFORMATTED_VALUE (даты — как Excel-серийные числа, не форматированный текст).
-export async function fetchSheetValues(saJson, sheetId, tab, range = "A1:ZZ") {
+export async function fetchSheetValues(saJson, sheetId, tab, range = "A1:ZZ", valueRenderOption = "UNFORMATTED_VALUE") {
   const token = await getAccessToken(saJson);
   const fullRange = `${tab}!${range}`;
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(
     fullRange,
-  )}?valueRenderOption=UNFORMATTED_VALUE`;
+  )}?valueRenderOption=${valueRenderOption}`;
   const resp = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
   if (!resp.ok) throw new Error(`Sheets GET ${resp.status}: ${await resp.text()}`);
   const data = await resp.json();
