@@ -1,0 +1,190 @@
+{
+  "_formulas": {
+    "note": "Дословные формулы из строки метрик (индекс 9, сразу над заголовком). SUM_COL/INV_COL/PAID_COL — три колонки одного периода (Сумма/Счёт/Оплачен), например для 2026-08 это DF/DG/DH.",
+    "issuedAmount": "=SUM(SUM_COL12:SUM_COL421)",
+    "fraction_issuedOverPaid": "=COUNTIF(INV_COL12:INV_COL421; true) & \" / \" & COUNTIF(PAID_COL12:PAID_COL421;\"Да\")",
+    "fraction_meaning": "ВАЖНО: левое число — count(чекбокс \"Счёт\"=true), НЕ count(строк с непустой Суммой). Правое число — count(Оплачен=\"Да\"), совпадает с нашим paidCount.",
+    "mrr": "=text(SUMIF(PAID_COL12:PAID_COL421;\"Да\";SUM_COL12:SUM_COL421);\"#,###\")",
+    "mrr_meaning": "Сумма Сумма-колонки там, где Оплачен=\"Да\" — ровно то же определение, что мы реализуем в core/mrr.mjs.",
+    "arpu": "=AVERAGEIF(PAID_COL12:PAID_COL421;\"Да\";$H:$H)",
+    "arpu_meaning": "ARPU усредняет НЕ Сумму периода, а колонку H (\"АП\" — фиксированная абонентская плата контракта), отфильтрованную по Оплачен=\"Да\" ЭТОГО периода. ПОДТВЕРЖДЁН БАГ (шаг 5.2): диапазон условия PAID_COL12:PAID_COL421 не совпадает по размеру с $H:$H (весь столбец), из-за чего Sheets выравнивает их от строки 1 — формула на деле берёт тариф строки со сдвигом на 11, не тариф оплатившего контракта. См. arpuSheetNote в каждом месяце. Для валидации используется ourArpu (наш расчёт), не arpuSheet. ОБНОВЛЕНИЕ (шаг 5.2): подтверждена реальная ошибка в этой формуле таблицы (сдвиг диапазона AVERAGEIF на 11 строк) — см. поле arpuSheetNote в каждом месяце. Для валидации кода используется ourArpu, не arpuSheet.",
+    "movement_newCount": "=COUNTIFS(PAID_COL:PAID_COL;\"Да\";PREV_PAID_COL:PREV_PAID_COL;\"<>\"&\"ДА\") — PREV_PAID_COL = колонка Оплачен предыдущего месяца.",
+    "movement_churnCount": "=-COUNTIFS(PAID_COL:PAID_COL;\"<>\"&\"Да\";PREV_PAID_COL:PREV_PAID_COL;\"ДА\") — уже отрицательное число.",
+    "movement_netAdds": "= (ячейка Новых клиентов) + (ячейка Отток), простая сумма двух ячеек в той же колонке.",
+    "movement_newMRR": "=SUMIFS($H:$H;PAID_COL:PAID_COL;\"Да\";PREV_PAID_COL:PREV_PAID_COL;\"<>\"&\"ДА\")",
+    "movement_churnMRR": "=-sumifs($H:$H;PAID_COL:PAID_COL;\"<>\"&\"Да\";PREV_PAID_COL:PREV_PAID_COL;\"ДА\") — уже отрицательное.",
+    "movement_monthlyChange": "= (ячейка New MRR) + (ячейка Churn MRR).",
+    "movement_meaning": "В отличие от ARPU, здесь ВСЕ три диапазона ($H:$H, PAID_COL:PAID_COL, PREV_PAID_COL:PREV_PAID_COL) — полные столбцы одинакового \"размера\", поэтому Sheets выравнивает их построчно правильно (H1↔строка1, H2↔строка2 и т.д.) — сдвига на 11 строк здесь НЕТ, в отличие от ARPU. Формулы движения формально багом смещения не страдают.",
+    "dataRowRange": "Формулы issuedAmount/mrr/arpu считают по строкам 12:421 (1-based, как в интерфейсе Sheets) — это ровно тот же диапазон данных, что парсит наш импорт. Формулы движения (New/Churn MRR, счётчики) используют ПОЛНЫЕ столбцы без ограничения диапазона строк — см. movement_meaning."
+  },
+  "months": [
+    {
+      "periodStart": "2026-05-01",
+      "issuedAmount": 2107676.39,
+      "mrr": 2060986,
+      "issuedCount": 126,
+      "paidCount": 120,
+      "movement": {
+        "newCount": 7,
+        "churnCount": -12,
+        "netAdds": -5,
+        "newMRR": 92390,
+        "churnMRR": -152490,
+        "monthlyChange": -60100
+      },
+      "sheetFormulaNote": {
+        "fraction": "124 / 120",
+        "sheetIssuedCheckboxCount": 124,
+        "sheetPaidCount": 120,
+        "comment": "Дробь в таблице — это (Счёт=true) / (Оплачен=\"Да\"), НЕ (строк с Суммой) / (Оплачен=\"Да\"). Наши issuedCount/paidCount посчитаны напрямую по сырым данным независимо от этой формулы."
+      },
+      "arpuSheet": 17680.51401869159,
+      "arpuSheetNote": "source_bug: AVERAGEIF range shift, not used for validation — диапазон условия начинается со строки 12, а $H:$H выравнивается от строки 1, из-за чего формула берёт тариф соседней строки, а не оплатившего контракта (подтверждено построчной сверкой). См. отчёты по шагу 5.2.",
+      "ourArpu": 17106.8487394958
+    },
+    {
+      "periodStart": "2026-06-01",
+      "issuedAmount": 2125788.33,
+      "mrr": 2016385,
+      "issuedCount": 127,
+      "paidCount": 117,
+      "movement": {
+        "newCount": 8,
+        "churnCount": -11,
+        "netAdds": -3,
+        "newMRR": 122200,
+        "churnMRR": -142560,
+        "monthlyChange": -20360
+      },
+      "sheetFormulaNote": {
+        "fraction": "127 / 117",
+        "sheetIssuedCheckboxCount": 127,
+        "sheetPaidCount": 117,
+        "comment": "Дробь в таблице — это (Счёт=true) / (Оплачен=\"Да\"), НЕ (строк с Суммой) / (Оплачен=\"Да\"). Наши issuedCount/paidCount посчитаны напрямую по сырым данным независимо от этой формулы."
+      },
+      "arpuSheet": 18098.904761904763,
+      "arpuSheetNote": "source_bug: AVERAGEIF range shift, not used for validation — диапазон условия начинается со строки 12, а $H:$H выравнивается от строки 1, из-за чего формула берёт тариф соседней строки, а не оплатившего контракта (подтверждено построчной сверкой). См. отчёты по шагу 5.2.",
+      "ourArpu": 17373.75
+    },
+    {
+      "periodStart": "2026-07-01",
+      "issuedAmount": 2078355.2000000002,
+      "mrr": 1837228,
+      "issuedCount": 120,
+      "paidCount": 108,
+      "movement": {
+        "newCount": 6,
+        "churnCount": -15,
+        "netAdds": -9,
+        "newMRR": 208010,
+        "churnMRR": -288670,
+        "monthlyChange": -80660
+      },
+      "sheetFormulaNote": {
+        "fraction": "120 / 108",
+        "sheetIssuedCheckboxCount": 120,
+        "sheetPaidCount": 108,
+        "comment": "Дробь в таблице — это (Счёт=true) / (Оплачен=\"Да\"), НЕ (строк с Суммой) / (Оплачен=\"Да\"). Наши issuedCount/paidCount посчитаны напрямую по сырым данным независимо от этой формулы."
+      },
+      "arpuSheet": 18104.322916666668,
+      "arpuSheetNote": "source_bug: AVERAGEIF range shift, not used for validation — диапазон условия начинается со строки 12, а $H:$H выравнивается от строки 1, из-за чего формула берёт тариф соседней строки, а не оплатившего контракта (подтверждено построчной сверкой). См. отчёты по шагу 5.2.",
+      "ourArpu": 18149.009433962263
+    },
+    {
+      "periodStart": "2026-08-01",
+      "issuedAmount": 2152346.9799999995,
+      "mrr": 1936140,
+      "issuedCount": 116,
+      "paidCount": 104,
+      "movement": {
+        "newCount": 5,
+        "churnCount": -9,
+        "netAdds": -4,
+        "newMRR": 123690,
+        "churnMRR": -115880,
+        "monthlyChange": 7810
+      },
+      "sheetFormulaNote": {
+        "fraction": "116 / 104",
+        "sheetIssuedCheckboxCount": 116,
+        "sheetPaidCount": 104,
+        "comment": "Дробь в таблице — это (Счёт=true) / (Оплачен=\"Да\"), НЕ (строк с Суммой) / (Оплачен=\"Да\"). Наши issuedCount/paidCount посчитаны напрямую по сырым данным независимо от этой формулы."
+      },
+      "arpuSheet": 18353.42391304348,
+      "arpuSheetNote": "source_bug: AVERAGEIF range shift, not used for validation — диапазон условия начинается со строки 12, а $H:$H выравнивается от строки 1, из-за чего формула берёт тариф соседней строки, а не оплатившего контракта (подтверждено построчной сверкой). См. отчёты по шагу 5.2.",
+      "ourArpu": 18753.44660194175
+    },
+    {
+      "periodStart": "2024-06-01",
+      "issuedAmount": 655379.67,
+      "mrr": 617580,
+      "issuedCount": 45,
+      "paidCount": 43,
+      "movement": {
+        "newCount": 9,
+        "churnCount": -7,
+        "netAdds": 2,
+        "newMRR": 120540,
+        "churnMRR": -105570,
+        "monthlyChange": 14970
+      },
+      "sheetFormulaNote": {
+        "fraction": "48 / 43",
+        "sheetIssuedCheckboxCount": 48,
+        "sheetPaidCount": 43,
+        "comment": "Дробь в таблице — это (Счёт=true) / (Оплачен=\"Да\"), НЕ (строк с Суммой) / (Оплачен=\"Да\"). Наши issuedCount/paidCount посчитаны напрямую по сырым данным независимо от этой формулы."
+      },
+      "arpuSheet": 15916.875,
+      "arpuSheetNote": "source_bug: AVERAGEIF range shift, not used for validation — диапазон условия начинается со строки 12, а $H:$H выравнивается от строки 1, из-за чего формула берёт тариф соседней строки, а не оплатившего контракта (подтверждено построчной сверкой). См. отчёты по шагу 5.2.",
+      "ourArpu": 15954.186046511628
+    },
+    {
+      "periodStart": "2025-03-01",
+      "issuedAmount": 1397683.7299999997,
+      "mrr": 1365992,
+      "issuedCount": 97,
+      "paidCount": 93,
+      "movement": {
+        "newCount": 14,
+        "churnCount": -6,
+        "netAdds": 8,
+        "newMRR": 224930,
+        "churnMRR": -90580,
+        "monthlyChange": 134350
+      },
+      "sheetFormulaNote": {
+        "fraction": "96 / 93",
+        "sheetIssuedCheckboxCount": 96,
+        "sheetPaidCount": 93,
+        "comment": "Дробь в таблице — это (Счёт=true) / (Оплачен=\"Да\"), НЕ (строк с Суммой) / (Оплачен=\"Да\"). Наши issuedCount/paidCount посчитаны напрямую по сырым данным независимо от этой формулы."
+      },
+      "arpuSheet": 15497.134146341463,
+      "arpuSheetNote": "source_bug: AVERAGEIF range shift, not used for validation — диапазон условия начинается со строки 12, а $H:$H выравнивается от строки 1, из-за чего формула берёт тариф соседней строки, а не оплатившего контракта (подтверждено построчной сверкой). См. отчёты по шагу 5.2.",
+      "ourArpu": 14915.913978494624
+    },
+    {
+      "periodStart": "2025-11-01",
+      "issuedAmount": 1979422,
+      "mrr": 1906682,
+      "issuedCount": 136,
+      "paidCount": 129,
+      "movement": {
+        "newCount": 16,
+        "churnCount": -13,
+        "netAdds": 3,
+        "newMRR": 271760,
+        "churnMRR": -187130,
+        "monthlyChange": 84630
+      },
+      "sheetFormulaNote": {
+        "fraction": "138 / 129",
+        "sheetIssuedCheckboxCount": 138,
+        "sheetPaidCount": 129,
+        "comment": "Дробь в таблице — это (Счёт=true) / (Оплачен=\"Да\"), НЕ (строк с Суммой) / (Оплачен=\"Да\"). Наши issuedCount/paidCount посчитаны напрямую по сырым данным независимо от этой формулы."
+      },
+      "arpuSheet": 16526.324786324785,
+      "arpuSheetNote": "source_bug: AVERAGEIF range shift, not used for validation — диапазон условия начинается со строки 12, а $H:$H выравнивается от строки 1, из-за чего формула берёт тариф соседней строки, а не оплатившего контракта (подтверждено построчной сверкой). См. отчёты по шагу 5.2.",
+      "ourArpu": 15934.302325581395
+    }
+  ]
+}
