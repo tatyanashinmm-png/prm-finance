@@ -12,10 +12,13 @@ import { parseSheet } from "./lib/parse-sheet.mjs";
 
 const DB_NAME = "prm-finance-db";
 
+const isRemote = process.argv.includes("--remote");
+const target = isRemote ? "--remote" : "--local";
+
 function queryLocalD1(sql) {
   const out = execFileSync(
     "npx",
-    ["wrangler", "d1", "execute", DB_NAME, "--local", "--command", sql, "--json"],
+    ["wrangler", "d1", "execute", DB_NAME, target, "--command", sql, "--json"],
     { encoding: "utf8" },
   );
   return JSON.parse(out)[0].results;
@@ -34,7 +37,7 @@ async function main() {
   const goldenPath = fileURLToPath(new URL("../golden-mrr.json", import.meta.url));
   const golden = JSON.parse(readFileSync(goldenPath, "utf8"));
 
-  console.log("Читаю invoices и tariffs из ЛОКАЛЬНОЙ D1...");
+  console.log(`Читаю invoices и tariffs из ${isRemote ? "БОЕВОЙ (--remote)" : "ЛОКАЛЬНОЙ"} D1...`);
   const invoices = queryLocalD1(`
     SELECT c.contract_num as contractNum, p.period_start as periodStart, i.paid_status as paidStatus
     FROM invoices i

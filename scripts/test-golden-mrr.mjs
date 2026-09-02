@@ -17,10 +17,13 @@ function loadEnv() {
   if (existsSync(envPath)) process.loadEnvFile(envPath);
 }
 
+const isRemote = process.argv.includes("--remote");
+const target = isRemote ? "--remote" : "--local";
+
 function queryLocalD1(sql) {
   const out = execFileSync(
     "npx",
-    ["wrangler", "d1", "execute", DB_NAME, "--local", "--command", sql, "--json"],
+    ["wrangler", "d1", "execute", DB_NAME, target, "--command", sql, "--json"],
     { encoding: "utf8" },
   );
   const parsed = JSON.parse(out);
@@ -36,7 +39,7 @@ async function main() {
   const goldenPath = fileURLToPath(new URL("../golden-mrr.json", import.meta.url));
   const golden = JSON.parse(readFileSync(goldenPath, "utf8"));
 
-  console.log("Читаю invoices из ЛОКАЛЬНОЙ D1...");
+  console.log(`Читаю invoices из ${isRemote ? "БОЕВОЙ (--remote)" : "ЛОКАЛЬНОЙ"} D1...`);
   const rows = queryLocalD1(`
     SELECT c.contract_num as contractNum, p.period_start as periodStart,
            i.invoice_amount as invoiceAmount, i.paid_status as paidStatus
