@@ -168,6 +168,126 @@ input {
   margin-bottom: 20px;
 }
 
+.page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.page__header .page__title {
+  margin-bottom: 0;
+}
+
+/* --- фильтр периода --- */
+.period-filter {
+  display: flex;
+  gap: 4px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+}
+
+.period-filter__btn {
+  appearance: none;
+  border: none;
+  background: none;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  padding: 7px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+
+.period-filter__btn:hover {
+  color: var(--color-text);
+}
+
+.period-filter__btn--active {
+  background: var(--color-navy);
+  color: var(--color-text-inverse);
+}
+
+/* --- KPI-карточка --- */
+.kpi-card {
+  max-width: 320px;
+}
+
+.kpi-card__label {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin-bottom: 8px;
+}
+
+.kpi-card__value {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.1;
+}
+
+.kpi-card__delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.kpi-card__delta--up {
+  color: var(--color-green);
+}
+
+.kpi-card__delta--down {
+  color: var(--color-red);
+}
+
+.kpi-card__delta--flat {
+  color: var(--color-text-secondary);
+}
+
+.kpi-card__delta-arrow {
+  font-size: 10px;
+}
+
+/* --- заголовок карточки с элементом управления --- */
+.card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.card__header .card__title {
+  margin-bottom: 0;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle input {
+  accent-color: var(--color-blue);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
 .card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -251,6 +371,9 @@ input {
 .chart-tooltip__month {
   font-weight: 600;
   margin-bottom: 4px;
+}
+
+.chart-tooltip__month-cap {
   text-transform: capitalize;
 }
 

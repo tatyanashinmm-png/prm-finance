@@ -1,24 +1,21 @@
-export type TabId = 'mrr' | 'movement' | 'arpu' | 'overview' | 'contracts'
+export type SectionId = 'dashboard' | 'database' | 'users'
 
-interface TabDef {
-  id: TabId
+interface SectionDef {
+  id: SectionId
   label: string
-  enabled: boolean
 }
 
-// Каркас на будущее: новые вкладки просто добавляются в этот список.
-// enabled: false — показана приглушённой, кликнуть нельзя.
-const TABS: TabDef[] = [
-  { id: 'mrr', label: 'MRR', enabled: true },
-  { id: 'movement', label: 'Движение', enabled: false },
-  { id: 'arpu', label: 'ARPU', enabled: false },
-  { id: 'overview', label: 'Обзор', enabled: false },
-  { id: 'contracts', label: 'Контракты', enabled: true },
+// Верхний уровень навигации. Внутри «Дашборда» позже появятся свои экраны
+// (сейчас там только «Обзор») — секции добавляются просто дописыванием сюда.
+const SECTIONS: SectionDef[] = [
+  { id: 'dashboard', label: 'Дашборд' },
+  { id: 'database', label: 'База' },
+  { id: 'users', label: 'Пользователи' },
 ]
 
 interface TopNavProps {
-  active: TabId
-  onChange: (tab: TabId) => void
+  active: SectionId
+  onChange: (section: SectionId) => void
   username: string
   role: string
   onLogout: () => void
@@ -29,16 +26,14 @@ export function TopNav({ active, onChange, username, role, onLogout }: TopNavPro
     <nav className="top-nav">
       <span className="top-nav__brand">PRM Finance</span>
       <div className="top-nav__tabs">
-        {TABS.map((tab) => (
+        {SECTIONS.map((section) => (
           <button
-            key={tab.id}
+            key={section.id}
             type="button"
-            className={`top-nav__tab${active === tab.id ? ' top-nav__tab--active' : ''}`}
-            disabled={!tab.enabled}
-            title={tab.enabled ? undefined : 'скоро'}
-            onClick={() => tab.enabled && onChange(tab.id)}
+            className={`top-nav__tab${active === section.id ? ' top-nav__tab--active' : ''}`}
+            onClick={() => onChange(section.id)}
           >
-            {tab.label}
+            {section.label}
           </button>
         ))}
       </div>

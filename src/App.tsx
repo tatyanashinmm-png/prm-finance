@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { TopNav, type TabId } from './components/TopNav'
-import { MrrPage } from './pages/MrrPage'
+import { TopNav, type SectionId } from './components/TopNav'
+import { OverviewPage } from './pages/OverviewPage'
 import { ContractsPage } from './pages/ContractsPage'
+import { UsersPage } from './pages/UsersPage'
 
 interface AuthedUser {
   username: string
@@ -72,7 +73,7 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
 }
 
 function Dashboard({ user, onLogout }: { user: AuthedUser; onLogout: () => void }) {
-  const [tab, setTab] = useState<TabId>('mrr')
+  const [section, setSection] = useState<SectionId>('dashboard')
 
   const logout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' })
@@ -81,9 +82,10 @@ function Dashboard({ user, onLogout }: { user: AuthedUser; onLogout: () => void 
 
   return (
     <>
-      <TopNav active={tab} onChange={setTab} username={user.username} role={user.role} onLogout={logout} />
-      {tab === 'mrr' && <MrrPage />}
-      {tab === 'contracts' && <ContractsPage />}
+      <TopNav active={section} onChange={setSection} username={user.username} role={user.role} onLogout={logout} />
+      {section === 'dashboard' && <OverviewPage />}
+      {section === 'database' && <ContractsPage />}
+      {section === 'users' && <UsersPage />}
     </>
   )
 }
