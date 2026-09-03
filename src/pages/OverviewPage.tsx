@@ -1,9 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import { PeriodFilter } from '../components/PeriodFilter'
-import { MrrKpiCard } from '../components/MrrKpiCard'
-import { MrrChart } from '../components/MrrChart'
+import { KpiCard } from '../components/KpiCard'
+import { MetricChart } from '../components/MetricChart'
 import { MrrChangeStrip } from '../components/MrrChangeStrip'
-import { computeDeltas, getLastClosedKpi, isCurrentMonth, isFutureMonth, type MonthlyMetric } from '../lib/metrics'
+import { formatRub } from '../lib/format'
+import {
+  computeDeltas,
+  getLastClosedArpuKpi,
+  getLastClosedMrrKpi,
+  isCurrentMonth,
+  isFutureMonth,
+  type MonthlyMetric,
+} from '../lib/metrics'
 import { filterMonths, type PeriodSelection } from '../lib/period'
 
 export function OverviewPage() {
@@ -22,7 +30,8 @@ export function OverviewPage() {
   }, [])
 
   const filtered = useMemo(() => (months ? filterMonths(months, selection) : []), [months, selection])
-  const kpi = useMemo(() => (months ? getLastClosedKpi(months) : null), [months])
+  const mrrKpi = useMemo(() => (months ? getLastClosedMrrKpi(months) : null), [months])
+  const arpuKpi = useMemo(() => (months ? getLastClosedArpuKpi(months) : null), [months])
   const changePoints = useMemo(() => {
     if (!months) return []
     const deltas = computeDeltas(months)
@@ -43,9 +52,13 @@ export function OverviewPage() {
 
       {months && (
         <>
-          <MrrKpiCard kpi={kpi} />
-          <MrrChart months={filtered} />
+          <div className="kpi-row">
+            <KpiCard label="MRR" kpi={mrrKpi} formatValue={(v) => formatRub(v)} emptyMessage="Нет ни одного закрытого месяца" />
+            <KpiCard label="ARPU" kpi={arpuKpi} formatValue={(v) => formatRub(v)} emptyMessage="Нет ни одного закрытого месяца" />
+          </div>
+          <MetricChart months={filtered} title="MRR по месяцам" metricLabel="MRR" getValue={(m) => m.mrr} />
           <MrrChangeStrip points={changePoints} />
+          <MetricChart months={filtered} title="ARPU по месяцам" metricLabel="ARPU" getValue={(m) => m.arpu} />
         </>
       )}
     </div>

@@ -3,6 +3,8 @@ import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import {
   getContracts,
   getMonthlyInvoices,
+  getArpuInvoices,
+  getTariffs,
   getUserByUsername,
   getUserBySessionTokenHash,
   registerFailedLogin,
@@ -12,6 +14,7 @@ import {
 } from "./db/index.ts";
 import type { UserRole } from "./db/schema.ts";
 import { computeMonthlyMetrics } from "./core/mrr.mjs";
+import { computeMonthlyArpu } from "./core/arpu.mjs";
 import { verifyPassword, DUMMY_HASH } from "./auth/password.ts";
 import {
   generateSessionToken,
@@ -127,6 +130,10 @@ app.get("/api/contracts", requireAuth, async (c) => {
 app.get("/api/metrics/monthly", requireAuth, async (c) => {
   const invoices = await getMonthlyInvoices(c.env);
   const byPeriod = computeMonthlyMetrics(invoices);
+
+  const [arpuInvoices, tariffs] = await Promise.all([getArpuInvoices(c.env), getTariffs(c.env)]);
+  const arpuByPeriod = computeMonthlyArpu(arpuInvoices, tariffs);
+
   const months = [...byPeriod.values()]
     .sort((a, b) => a.periodStart.localeCompare(b.periodStart))
     .map((m) => ({
@@ -135,6 +142,7 @@ app.get("/api/metrics/monthly", requireAuth, async (c) => {
       issued_count: m.issuedCount,
       paid_count: m.paidCount,
       mrr: m.mrr,
+      arpu: arpuByPeriod.get(m.periodStart) ?? null,
     }));
   return c.json({ months });
 });

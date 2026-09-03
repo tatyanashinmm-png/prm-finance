@@ -14,69 +14,91 @@ import {
 import { formatCompactRub, formatMonthShort, formatRub } from '../lib/format'
 import { isCurrentMonth, type MonthlyMetric } from '../lib/metrics'
 
-interface ChartPoint extends MonthlyMetric {
+interface ChartPoint {
+  period_start: string
   isCurrent: boolean
-  mrrClosed: number | null
-  mrrTrend: number | null
+  valueClosed: number | null
+  valueTrend: number | null
 }
 
-function buildChartData(months: MonthlyMetric[]): ChartPoint[] {
+function buildChartData(months: MonthlyMetric[], getValue: (m: MonthlyMetric) => number | null): ChartPoint[] {
   const currentIdx = months.findIndex((m) => isCurrentMonth(m.period_start))
   return months.map((m, i) => {
     const isCurrent = i === currentIdx
+    const value = getValue(m)
     return {
-      ...m,
+      period_start: m.period_start,
       isCurrent,
-      mrrClosed: isCurrent ? null : m.mrr,
-      mrrTrend: currentIdx >= 0 && (i === currentIdx || i === currentIdx - 1) ? m.mrr : null,
+      valueClosed: isCurrent ? null : value,
+      valueTrend: currentIdx >= 0 && (i === currentIdx || i === currentIdx - 1) ? value : null,
     }
   })
 }
 
-function ChartTooltip({ active, payload }: TooltipContentProps) {
-  if (!active || !payload?.length) return null
-  const point = payload[0]?.payload as ChartPoint | undefined
-  if (!point) return null
-  return (
-    <div className="chart-tooltip">
-      <div className="chart-tooltip__month">
-        <span className="chart-tooltip__month-cap">{formatMonthShort(point.period_start)}</span>
-        {point.isCurrent ? ' · в процессе' : ''}
+function makeChartTooltip(metricLabel: string) {
+  return function ChartTooltip({ active, payload }: TooltipContentProps) {
+    if (!active || !payload?.length) return null
+    const point = payload[0]?.payload as ChartPoint | undefined
+    if (!point) return null
+    const value = point.isCurrent ? point.valueTrend : point.valueClosed
+    return (
+      <div className="chart-tooltip">
+        <div className="chart-tooltip__month">
+          <span className="chart-tooltip__month-cap">{formatMonthShort(point.period_start)}</span>
+          {point.isCurrent ? ' · в процессе' : ''}
+        </div>
+        <div className="chart-tooltip__value">
+          {metricLabel}: {value === null || value === undefined ? '—' : formatRub(value, { decimals: true })}
+        </div>
       </div>
-      <div className="chart-tooltip__value">MRR: {formatRub(point.mrr, { decimals: true })}</div>
-    </div>
-  )
+    )
+  }
 }
 
-function ClosedDot(props: DotItemDotProps) {
-  const { cx, cy, payload } = props
-  const point = payload as ChartPoint
-  if (point?.isCurrent || cx == null || cy == null) return null
-  return <circle cx={cx} cy={cy} r={3} fill="#0C39FF" />
+function makeClosedDot(color: string) {
+  return function ClosedDot(props: DotItemDotProps) {
+    const { cx, cy, payload } = props
+    const point = payload as ChartPoint
+    if (point?.isCurrent || cx == null || cy == null) return null
+    return <circle cx={cx} cy={cy} r={3} fill={color} />
+  }
 }
 
-function TrendDot(props: DotItemDotProps) {
-  const { cx, cy, payload } = props
-  const point = payload as ChartPoint
-  if (!point?.isCurrent || cx == null || cy == null) return null
-  return (
-    <g>
-      <circle cx={cx} cy={cy} r={5} fill="var(--color-surface)" stroke="#0C39FF" strokeWidth={2} />
-      <text x={cx} y={cy - 14} textAnchor="middle" fontSize={11} fill="var(--color-text-secondary)">
-        в процессе
-      </text>
-    </g>
-  )
+function makeTrendDot(color: string) {
+  return function TrendDot(props: DotItemDotProps) {
+    const { cx, cy, payload } = props
+    const point = payload as ChartPoint
+    if (!point?.isCurrent || cx == null || cy == null) return null
+    return (
+      <g>
+        <circle cx={cx} cy={cy} r={5} fill="var(--color-surface)" stroke={color} strokeWidth={2} />
+        <text x={cx} y={cy - 14} textAnchor="middle" fontSize={11} fill="var(--color-text-secondary)">
+          в процессе
+        </text>
+      </g>
+    )
+  }
 }
 
-export function MrrChart({ months }: { months: MonthlyMetric[] }) {
+interface MetricChartProps {
+  months: MonthlyMetric[]
+  title: string
+  metricLabel: string
+  getValue: (m: MonthlyMetric) => number | null
+  color?: string
+}
+
+export function MetricChart({ months, title, metricLabel, getValue, color = '#0C39FF' }: MetricChartProps) {
   const [showLabels, setShowLabels] = useState(false)
-  const data = buildChartData(months)
+  const data = buildChartData(months, getValue)
+  const ChartTooltip = makeChartTooltip(metricLabel)
+  const ClosedDot = makeClosedDot(color)
+  const TrendDot = makeTrendDot(color)
 
   return (
     <div className="card">
       <div className="card__header">
-        <div className="card__title">MRR по месяцам</div>
+        <div className="card__title">{title}</div>
         <label className="toggle">
           <input type="checkbox" checked={showLabels} onChange={(e) => setShowLabels(e.target.checked)} />
           <span>Значения на графике</span>
@@ -109,8 +131,8 @@ export function MrrChart({ months }: { months: MonthlyMetric[] }) {
               <Tooltip content={ChartTooltip} />
               <Line
                 type="monotone"
-                dataKey="mrrClosed"
-                stroke="#0C39FF"
+                dataKey="valueClosed"
+                stroke={color}
                 strokeWidth={2.5}
                 dot={ClosedDot}
                 activeDot={{ r: 5 }}
@@ -119,7 +141,7 @@ export function MrrChart({ months }: { months: MonthlyMetric[] }) {
               >
                 {showLabels && (
                   <LabelList
-                    dataKey="mrrClosed"
+                    dataKey="valueClosed"
                     position="top"
                     formatter={(v) => (typeof v === 'number' ? formatCompactRub(v) : '')}
                     style={{ fontSize: 11, fill: 'var(--color-text-secondary)' }}
@@ -128,8 +150,8 @@ export function MrrChart({ months }: { months: MonthlyMetric[] }) {
               </Line>
               <Line
                 type="monotone"
-                dataKey="mrrTrend"
-                stroke="#0C39FF"
+                dataKey="valueTrend"
+                stroke={color}
                 strokeWidth={2.5}
                 strokeDasharray="5 4"
                 dot={TrendDot}

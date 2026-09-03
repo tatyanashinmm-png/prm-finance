@@ -1,6 +1,9 @@
 // Работа с ответом GET /api/metrics/monthly на клиенте: определение текущего
 // календарного месяца, дельты к предыдущему месяцу, KPI за последний закрытый
 // месяц. Эндпоинт отдаёт данные как есть — вся эта логика чисто клиентская.
+// Общая для MRR и ARPU: обе метрики — просто разные числовые поля одного и
+// того же месяца, поэтому дельты/KPI считаются одной параметризуемой функцией
+// (getValue), без дублирования под каждую метрику отдельно.
 
 export interface MonthlyMetric {
   period_start: string
@@ -8,6 +11,7 @@ export interface MonthlyMetric {
   issued_count: number
   paid_count: number
   mrr: number
+  arpu: number | null
 }
 
 /** Первое число текущего календарного месяца, "YYYY-MM-01" (локальная дата). */
@@ -30,6 +34,25 @@ export interface MonthDelta {
   deltaPct: number | null
 }
 
+function computeDeltasBy(
+  months: MonthlyMetric[],
+  getValue: (m: MonthlyMetric) => number | null,
+): Map<string, number | null> {
+  const result = new Map<string, number | null>()
+  for (let i = 0; i < months.length; i++) {
+    const prev = months[i - 1]
+    const curr = months[i]
+    const prevVal = prev ? getValue(prev) : null
+    const currVal = getValue(curr)
+    if (prevVal === null || prevVal === 0 || currVal === null) {
+      result.set(curr.period_start, null)
+      continue
+    }
+    result.set(curr.period_start, ((currVal - prevVal) / prevVal) * 100)
+  }
+  return result
+}
+
 /**
  * Дельта MRR к предыдущему месяцу (в %) для каждого месяца — считается по
  * полному ряду (months должен быть отсортирован по возрастанию и НЕ обрезан
@@ -37,30 +60,43 @@ export interface MonthDelta {
  * корректную дельту от месяца, который в диапазон не попал.
  */
 export function computeDeltas(months: MonthlyMetric[]): Map<string, number | null> {
-  const result = new Map<string, number | null>()
-  for (let i = 0; i < months.length; i++) {
-    const prev = months[i - 1]
-    const curr = months[i]
-    if (!prev || prev.mrr === 0) {
-      result.set(curr.period_start, null)
-      continue
-    }
-    result.set(curr.period_start, ((curr.mrr - prev.mrr) / prev.mrr) * 100)
-  }
-  return result
+  return computeDeltasBy(months, (m) => m.mrr)
 }
 
-export interface MrrKpi {
+/** То же самое, но для ARPU (используется полоской изменений, если понадобится). */
+export function computeArpuDeltas(months: MonthlyMetric[]): Map<string, number | null> {
+  return computeDeltasBy(months, (m) => m.arpu)
+}
+
+export interface MetricKpi {
   periodStart: string
-  mrr: number
+  value: number
   deltaPct: number | null
 }
 
-/** MRR за последний закрытый месяц (строго до текущего календарного) + дельта. */
-export function getLastClosedKpi(months: MonthlyMetric[]): MrrKpi | null {
+/**
+ * Значение метрики за последний ЗАКРЫТЫЙ месяц (строго до текущего
+ * календарного), у которого эта метрика вообще известна — пропускает месяцы
+ * с null (например ARPU без ни одного оплаченного контракта с тарифом), + дельта.
+ */
+function getLastClosedKpiBy(
+  months: MonthlyMetric[],
+  getValue: (m: MonthlyMetric) => number | null,
+): MetricKpi | null {
   const closed = months.filter((m) => !isCurrentMonth(m.period_start) && !isFutureMonth(m.period_start))
-  if (closed.length === 0) return null
-  const last = closed[closed.length - 1]
-  const deltas = computeDeltas(months)
-  return { periodStart: last.period_start, mrr: last.mrr, deltaPct: deltas.get(last.period_start) ?? null }
+  const deltas = computeDeltasBy(months, getValue)
+  for (let i = closed.length - 1; i >= 0; i--) {
+    const value = getValue(closed[i])
+    if (value === null) continue
+    return { periodStart: closed[i].period_start, value, deltaPct: deltas.get(closed[i].period_start) ?? null }
+  }
+  return null
+}
+
+export function getLastClosedMrrKpi(months: MonthlyMetric[]): MetricKpi | null {
+  return getLastClosedKpiBy(months, (m) => m.mrr)
+}
+
+export function getLastClosedArpuKpi(months: MonthlyMetric[]): MetricKpi | null {
+  return getLastClosedKpiBy(months, (m) => m.arpu)
 }

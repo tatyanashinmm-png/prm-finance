@@ -43,6 +43,35 @@ export async function getMonthlyInvoices(env: DbEnv) {
     .all();
 }
 
+// Форма строк — ровно InvoiceRow, которую ожидает worker/core/arpu.mjs
+// (contractNum/periodStart/paidStatus вместо invoiceAmount у MRR) —
+// та же форма, что использовалась в golden-тесте ARPU (scripts/test-golden-arpu.mjs).
+export async function getArpuInvoices(env: DbEnv) {
+  return client(env)
+    .select({
+      contractNum: schema.contracts.contractNum,
+      periodStart: schema.periods.periodStart,
+      paidStatus: schema.invoices.paidStatus,
+    })
+    .from(schema.invoices)
+    .innerJoin(schema.contracts, eq(schema.invoices.contractId, schema.contracts.id))
+    .innerJoin(schema.periods, eq(schema.invoices.periodId, schema.periods.id))
+    .all();
+}
+
+// Форма строк — ровно TariffRow, которую ожидает worker/core/arpu.mjs.
+export async function getTariffs(env: DbEnv) {
+  return client(env)
+    .select({
+      contractNum: schema.contracts.contractNum,
+      tariff: schema.tariffs.tariff,
+      effectiveFrom: schema.tariffs.effectiveFrom,
+    })
+    .from(schema.tariffs)
+    .innerJoin(schema.contracts, eq(schema.tariffs.contractId, schema.contracts.id))
+    .all();
+}
+
 // --- Пользователи и сессии ---
 
 export const LOGIN_LOCK_THRESHOLD = 5;

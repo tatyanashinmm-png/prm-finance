@@ -338,6 +338,22 @@ input {
   color: var(--color-text-inverse);
 }
 
+/* --- ряд KPI-карточек (MRR + ARPU и т.д.) --- */
+.kpi-row {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.kpi-row .card + .card {
+  margin-top: 0;
+}
+
+.kpi-row .kpi-card {
+  flex: 0 1 320px;
+}
+
 /* --- KPI-карточка --- */
 .kpi-card {
   max-width: 320px;
@@ -681,6 +697,11 @@ input {
 
   .card {
     padding: 16px;
+  }
+
+  .kpi-row {
+    gap: 12px;
+    margin-bottom: 12px;
   }
 
   .kpi-card {
