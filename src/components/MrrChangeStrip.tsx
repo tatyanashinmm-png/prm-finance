@@ -24,22 +24,24 @@ export function MrrChangeStrip({ points }: { points: ChangePoint[] }) {
   return (
     <div className="card">
       <div className="card__title">Изменение к прошлому месяцу</div>
-      <ResponsiveContainer width="100%" height={100}>
-        <BarChart data={points} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
-          <XAxis dataKey="period_start" hide />
-          <YAxis hide domain={['dataMin', 'dataMax']} />
-          <ReferenceLine y={0} stroke="var(--color-border)" />
-          <Tooltip content={ChangeTooltip} cursor={{ fill: 'var(--color-bg)' }} />
-          <Bar dataKey="deltaPct" radius={2} isAnimationActive={false}>
-            {points.map((p) => (
-              <Cell
-                key={p.period_start}
-                fill={p.deltaPct === null ? 'transparent' : p.deltaPct >= 0 ? '#16A34A' : '#FF5D5D'}
-              />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+      <div className="chart-scroll">
+        <ResponsiveContainer width="100%" height={100} minWidth={Math.max(360, points.length * 44)}>
+          <BarChart data={points} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
+            <XAxis dataKey="period_start" hide />
+            <YAxis hide domain={['dataMin', 'dataMax']} />
+            <ReferenceLine y={0} stroke="var(--color-border)" />
+            <Tooltip content={ChangeTooltip} cursor={{ fill: 'var(--color-bg)' }} />
+            <Bar dataKey="deltaPct" radius={2} minPointSize={2} isAnimationActive={false}>
+              {points.map((p) => (
+                <Cell
+                  key={p.period_start}
+                  fill={p.deltaPct === null ? 'transparent' : p.deltaPct >= 0 ? '#16A34A' : '#FF5D5D'}
+                />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   )
 }

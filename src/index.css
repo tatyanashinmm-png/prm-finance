@@ -482,6 +482,15 @@ input {
   font-variant-numeric: tabular-nums;
 }
 
+/* Горизонтальный скролл для графиков: на узких экранах ResponsiveContainer
+   рендерится на своей minWidth и не сжимается — этот враппер даёт ему
+   прокрутку вместо того, чтобы всё дробить и накладывать подписи друг на друга. */
+.chart-scroll {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
 .chart-tooltip {
   background: var(--color-navy);
   color: var(--color-text-inverse);
@@ -606,4 +615,93 @@ input {
   color: var(--color-red);
   font-size: 13px;
   margin: 4px 0 14px;
+}
+
+/* --- адаптив: мобильные экраны --- */
+@media (max-width: 640px) {
+  .top-nav {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 56px;
+    padding: 10px 16px;
+    row-gap: 10px;
+    column-gap: 12px;
+  }
+
+  .top-nav__brand {
+    font-size: 15px;
+  }
+
+  .top-nav__spacer {
+    display: none;
+  }
+
+  .top-nav__user {
+    margin-left: auto;
+    font-size: 12px;
+    gap: 8px;
+  }
+
+  .top-nav__tabs {
+    order: 10;
+    flex-basis: 100%;
+    width: 100%;
+  }
+
+  .page {
+    padding: 20px 16px 32px;
+  }
+
+  .page__title {
+    font-size: 19px;
+  }
+
+  .page__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .period-filter-wrap {
+    align-items: stretch;
+  }
+
+  .period-filter {
+    flex-wrap: wrap;
+  }
+
+  .period-custom {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .month-picker__popover {
+    right: auto;
+    left: 0;
+  }
+
+  .card {
+    padding: 16px;
+  }
+
+  .kpi-card {
+    max-width: none;
+  }
+
+  .kpi-card__value {
+    font-size: 28px;
+  }
+
+  .card__header {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+
+  .metrics-table {
+    font-size: 13px;
+  }
+
+  .metrics-table th,
+  .metrics-table td {
+    padding: 8px;
+  }
 }

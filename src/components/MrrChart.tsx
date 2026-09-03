@@ -84,61 +84,63 @@ export function MrrChart({ months }: { months: MonthlyMetric[] }) {
       </div>
       {data.length === 0 && <p className="state-msg">Нет данных за выбранный период</p>}
       {data.length > 0 && (
-        <ResponsiveContainer width="100%" height={360}>
-          <LineChart data={data} margin={{ top: 24, right: 16, left: 0, bottom: 32 }}>
-            <CartesianGrid stroke="var(--color-border)" vertical={false} />
-            <XAxis
-              dataKey="period_start"
-              tickFormatter={formatMonthShort}
-              tick={{ fontSize: 11, fill: 'var(--color-text-secondary)' }}
-              axisLine={{ stroke: 'var(--color-border)' }}
-              tickLine={false}
-              interval={0}
-              angle={-40}
-              textAnchor="end"
-              height={50}
-            />
-            <YAxis
-              tickFormatter={(v: number) => formatCompactRub(v)}
-              tick={{ fontSize: 12, fill: 'var(--color-text-secondary)' }}
-              axisLine={false}
-              tickLine={false}
-              width={72}
-            />
-            <Tooltip content={ChartTooltip} />
-            <Line
-              type="monotone"
-              dataKey="mrrClosed"
-              stroke="#0C39FF"
-              strokeWidth={2.5}
-              dot={ClosedDot}
-              activeDot={{ r: 5 }}
-              connectNulls={false}
-              isAnimationActive={false}
-            >
-              {showLabels && (
-                <LabelList
-                  dataKey="mrrClosed"
-                  position="top"
-                  formatter={(v) => (typeof v === 'number' ? formatCompactRub(v) : '')}
-                  style={{ fontSize: 11, fill: 'var(--color-text-secondary)' }}
-                />
-              )}
-            </Line>
-            <Line
-              type="monotone"
-              dataKey="mrrTrend"
-              stroke="#0C39FF"
-              strokeWidth={2.5}
-              strokeDasharray="5 4"
-              dot={TrendDot}
-              activeDot={{ r: 5 }}
-              connectNulls
-              legendType="none"
-              isAnimationActive={false}
-            />
-          </LineChart>
-        </ResponsiveContainer>
+        <div className="chart-scroll">
+          <ResponsiveContainer width="100%" height={360} minWidth={Math.max(360, data.length * 44)}>
+            <LineChart data={data} margin={{ top: 24, right: 16, left: 0, bottom: 32 }}>
+              <CartesianGrid stroke="var(--color-border)" vertical={false} />
+              <XAxis
+                dataKey="period_start"
+                tickFormatter={formatMonthShort}
+                tick={{ fontSize: 11, fill: 'var(--color-text-secondary)' }}
+                axisLine={{ stroke: 'var(--color-border)' }}
+                tickLine={false}
+                interval={0}
+                angle={-40}
+                textAnchor="end"
+                height={50}
+              />
+              <YAxis
+                tickFormatter={(v: number) => formatCompactRub(v)}
+                tick={{ fontSize: 12, fill: 'var(--color-text-secondary)' }}
+                axisLine={false}
+                tickLine={false}
+                width={72}
+              />
+              <Tooltip content={ChartTooltip} />
+              <Line
+                type="monotone"
+                dataKey="mrrClosed"
+                stroke="#0C39FF"
+                strokeWidth={2.5}
+                dot={ClosedDot}
+                activeDot={{ r: 5 }}
+                connectNulls={false}
+                isAnimationActive={false}
+              >
+                {showLabels && (
+                  <LabelList
+                    dataKey="mrrClosed"
+                    position="top"
+                    formatter={(v) => (typeof v === 'number' ? formatCompactRub(v) : '')}
+                    style={{ fontSize: 11, fill: 'var(--color-text-secondary)' }}
+                  />
+                )}
+              </Line>
+              <Line
+                type="monotone"
+                dataKey="mrrTrend"
+                stroke="#0C39FF"
+                strokeWidth={2.5}
+                strokeDasharray="5 4"
+                dot={TrendDot}
+                activeDot={{ r: 5 }}
+                connectNulls
+                legendType="none"
+                isAnimationActive={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       )}
     </div>
   )
