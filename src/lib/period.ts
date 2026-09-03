@@ -1,5 +1,7 @@
-// Пресеты фильтра периода на экране «Обзор» — фильтрация чисто клиентская,
-// эндпоинт /api/metrics/monthly всегда отдаёт полный ряд месяцев.
+// Пресеты и произвольный диапазон фильтра периода на экране «Обзор» —
+// фильтрация чисто клиентская, эндпоинт /api/metrics/monthly всегда отдаёт
+// полный ряд месяцев. Будущие (ещё не наступившие) месяцы на графике не
+// показываем никогда — ни в одном из пресетов, ни в произвольном диапазоне.
 import { currentMonthStart, isFutureMonth, type MonthlyMetric } from './metrics'
 
 export type PeriodPreset = 'last12' | 'last6' | 'ytd' | 'all'
@@ -11,18 +13,26 @@ export const PERIOD_PRESETS: { id: PeriodPreset; label: string }[] = [
   { id: 'all', label: 'Весь период' },
 ]
 
+export type PeriodSelection = { kind: 'preset'; preset: PeriodPreset } | { kind: 'custom'; start: string; end: string }
+
 /** "YYYY-MM-01" со сдвигом на delta месяцев (может быть отрицательным). */
-function shiftMonth(periodStart: string, delta: number): string {
+export function shiftMonth(periodStart: string, delta: number): string {
   const [year, month] = periodStart.split('-').map(Number)
   const d = new Date(Date.UTC(year, month - 1 + delta, 1))
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-01`
 }
 
+/** Диапазон по умолчанию при переключении на «Свой период» — те же 12 мес, что и в пресете. */
+export function defaultCustomRange(): { start: string; end: string } {
+  const current = currentMonthStart()
+  return { start: shiftMonth(current, -11), end: current }
+}
+
 export function filterByPreset(months: MonthlyMetric[], preset: PeriodPreset): MonthlyMetric[] {
-  if (preset === 'all') return months
+  const withoutFuture = months.filter((m) => !isFutureMonth(m.period_start))
+  if (preset === 'all') return withoutFuture
 
   const current = currentMonthStart()
-  const withoutFuture = months.filter((m) => !isFutureMonth(m.period_start))
 
   if (preset === 'ytd') {
     const yearStart = `${current.slice(0, 4)}-01-01`
@@ -32,4 +42,16 @@ export function filterByPreset(months: MonthlyMetric[], preset: PeriodPreset): M
   const monthsBack = preset === 'last12' ? 11 : 5
   const rangeStart = shiftMonth(current, -monthsBack)
   return withoutFuture.filter((m) => m.period_start >= rangeStart)
+}
+
+export function filterByCustomRange(months: MonthlyMetric[], start: string, end: string): MonthlyMetric[] {
+  const withoutFuture = months.filter((m) => !isFutureMonth(m.period_start))
+  const [from, to] = start <= end ? [start, end] : [end, start]
+  return withoutFuture.filter((m) => m.period_start >= from && m.period_start <= to)
+}
+
+export function filterMonths(months: MonthlyMetric[], selection: PeriodSelection): MonthlyMetric[] {
+  return selection.kind === 'custom'
+    ? filterByCustomRange(months, selection.start, selection.end)
+    : filterByPreset(months, selection.preset)
 }

@@ -182,6 +182,13 @@ input {
 }
 
 /* --- фильтр периода --- */
+.period-filter-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
 .period-filter {
   display: flex;
   gap: 4px;
@@ -212,6 +219,122 @@ input {
 
 .period-filter__btn--active {
   background: var(--color-navy);
+  color: var(--color-text-inverse);
+}
+
+/* --- произвольный период --- */
+.period-custom {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.month-picker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.month-picker__label {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.month-picker__trigger {
+  appearance: none;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text);
+  padding: 7px 12px;
+  cursor: pointer;
+  min-width: 92px;
+  text-align: left;
+  text-transform: capitalize;
+}
+
+.month-picker__trigger:hover {
+  border-color: var(--color-blue);
+}
+
+.month-picker__popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-card);
+  padding: 10px;
+  width: 200px;
+}
+
+.month-picker__nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 8px;
+}
+
+.month-picker__nav button {
+  appearance: none;
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: 15px;
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.month-picker__nav button:hover:not(:disabled) {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.month-picker__nav button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.month-picker__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+
+.month-picker__cell {
+  appearance: none;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--color-text);
+  padding: 7px 0;
+  cursor: pointer;
+  text-transform: capitalize;
+}
+
+.month-picker__cell:hover:not(:disabled) {
+  background: var(--color-bg);
+}
+
+.month-picker__cell:disabled {
+  color: var(--color-border);
+  cursor: default;
+}
+
+.month-picker__cell--active {
+  background: var(--color-blue);
   color: var(--color-text-inverse);
 }
 

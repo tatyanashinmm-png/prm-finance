@@ -4,12 +4,12 @@ import { MrrKpiCard } from '../components/MrrKpiCard'
 import { MrrChart } from '../components/MrrChart'
 import { MrrChangeStrip } from '../components/MrrChangeStrip'
 import { computeDeltas, getLastClosedKpi, isCurrentMonth, isFutureMonth, type MonthlyMetric } from '../lib/metrics'
-import { filterByPreset, type PeriodPreset } from '../lib/period'
+import { filterMonths, type PeriodSelection } from '../lib/period'
 
 export function OverviewPage() {
   const [months, setMonths] = useState<MonthlyMetric[] | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [preset, setPreset] = useState<PeriodPreset>('last12')
+  const [selection, setSelection] = useState<PeriodSelection>({ kind: 'preset', preset: 'last12' })
 
   useEffect(() => {
     fetch('/api/metrics/monthly')
@@ -21,7 +21,7 @@ export function OverviewPage() {
       .catch((err) => setError(String(err)))
   }, [])
 
-  const filtered = useMemo(() => (months ? filterByPreset(months, preset) : []), [months, preset])
+  const filtered = useMemo(() => (months ? filterMonths(months, selection) : []), [months, selection])
   const kpi = useMemo(() => (months ? getLastClosedKpi(months) : null), [months])
   const changePoints = useMemo(() => {
     if (!months) return []
@@ -35,7 +35,7 @@ export function OverviewPage() {
     <div className="page">
       <div className="page__header">
         <h1 className="page__title">Обзор</h1>
-        <PeriodFilter value={preset} onChange={setPreset} />
+        <PeriodFilter value={selection} onChange={setSelection} />
       </div>
 
       {error && <p className="state-msg state-msg--error">Ошибка загрузки: {error}</p>}
