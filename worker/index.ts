@@ -6,6 +6,7 @@ import {
   getArpuInvoices,
   getTariffs,
   getInvoicesByManager,
+  NO_MANAGER_LABEL,
   getUserByUsername,
   getUserBySessionTokenHash,
   registerFailedLogin,
@@ -16,6 +17,7 @@ import {
 import type { UserRole } from "./db/schema.ts";
 import { computeMonthlyMetrics } from "./core/mrr.mjs";
 import { computeMonthlyArpu } from "./core/arpu.mjs";
+import { computeMovement } from "./core/movement.mjs";
 import { verifyPassword, DUMMY_HASH } from "./auth/password.ts";
 import {
   generateSessionToken,
@@ -179,6 +181,87 @@ app.get("/api/metrics/mrr-by-manager", requireAuth, async (c) => {
       const totalMrr = byManager.reduce((sum, m) => sum + m.mrr, 0);
       return { period_start: periodStart, total_mrr: totalMrr, by_manager: byManager };
     });
+
+  return c.json({ months });
+});
+
+// Разбивка движения MRR (New/Churn) по месяцам: та же golden-проверенная
+// computeMovement, вызванная на каждую пару соседних месяцев — суммы New
+// MRR / Churn MRR / чистое изменение приходят из ядра как есть, руками не
+// пересчитываются. Ядро отдаёт new_contracts/churn_contracts как массивы
+// номеров контрактов — здесь их обогащаем именем клиента, менеджером и
+// суммой тарифа для панели «почему». Обогащение НЕ новая формула движения:
+// это тот же поиск "тариф на дату", что уже есть внутри worker/core/movement.mjs
+// (там он приватный и не отдаётся наружу) — повторён здесь только для отображения.
+function buildTariffIndex(tariffs: { contractNum: string; tariff: number; effectiveFrom: string }[]) {
+  const byContract = new Map<string, { tariff: number; effectiveFrom: string }[]>();
+  for (const t of tariffs) {
+    if (!byContract.has(t.contractNum)) byContract.set(t.contractNum, []);
+    byContract.get(t.contractNum)!.push(t);
+  }
+  for (const list of byContract.values()) {
+    list.sort((a, b) => a.effectiveFrom.localeCompare(b.effectiveFrom));
+  }
+  return byContract;
+}
+
+function tariffAt(
+  index: Map<string, { tariff: number; effectiveFrom: string }[]>,
+  contractNum: string,
+  periodStart: string,
+): number | null {
+  const list = index.get(contractNum);
+  if (!list) return null;
+  let result: number | null = null;
+  for (const t of list) {
+    if (t.effectiveFrom <= periodStart) result = t.tariff;
+    else break;
+  }
+  return result;
+}
+
+app.get("/api/metrics/movement", requireAuth, async (c) => {
+  const [invoices, tariffs, contracts] = await Promise.all([
+    getArpuInvoices(c.env),
+    getTariffs(c.env),
+    getContracts(c.env),
+  ]);
+
+  const contractInfo = new Map(
+    contracts.map((ct) => [
+      ct.contractNum,
+      { clientName: ct.clientName, manager: ct.manager && ct.manager.trim() !== "" ? ct.manager : NO_MANAGER_LABEL },
+    ]),
+  );
+  const tariffIndex = buildTariffIndex(tariffs);
+
+  const periods = [...new Set(invoices.map((inv) => inv.periodStart))].sort((a, b) => a.localeCompare(b));
+
+  function enrich(contractNums: string[], atPeriod: string) {
+    return contractNums.map((cn) => ({
+      contract_num: cn,
+      client_name: contractInfo.get(cn)?.clientName ?? cn,
+      manager: contractInfo.get(cn)?.manager ?? NO_MANAGER_LABEL,
+      tariff: tariffAt(tariffIndex, cn, atPeriod),
+    }));
+  }
+
+  // Со второго месяца в базе — у первого нет предыдущего, движение не считается.
+  const months = periods.slice(1).map((curPeriodStart, i) => {
+    const prevPeriodStart = periods[i];
+    const movement = computeMovement(invoices, tariffs, prevPeriodStart, curPeriodStart);
+    return {
+      period_start: curPeriodStart,
+      new_count: movement.newCount,
+      churn_count: movement.churnCount,
+      net_count: movement.netAdds,
+      new_mrr: movement.newMRR,
+      churn_mrr: movement.churnMRR,
+      net_mrr: movement.monthlyChange,
+      new_contracts: enrich(movement.newContracts, curPeriodStart),
+      churn_contracts: enrich(movement.churnContracts, prevPeriodStart),
+    };
+  });
 
   return c.json({ months });
 });

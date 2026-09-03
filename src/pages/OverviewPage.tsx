@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { PeriodFilter } from '../components/PeriodFilter'
 import { ManagerFilter, ALL_MANAGERS } from '../components/ManagerFilter'
 import { KpiCard } from '../components/KpiCard'
+import { MovementKpiCard } from '../components/MovementKpiCard'
 import { MetricChart } from '../components/MetricChart'
 import { MrrChartSection } from '../components/MrrChartSection'
 import { MrrChangeStrip } from '../components/MrrChangeStrip'
+import { MrrMovementPanel } from '../components/MrrMovementPanel'
 import { formatRub } from '../lib/format'
 import {
   computeDeltas,
@@ -16,13 +18,16 @@ import {
 } from '../lib/metrics'
 import { filterMonths, type PeriodSelection } from '../lib/period'
 import { collectManagers, buildManagerColorMap, type ManagerMonthlyMrr } from '../lib/managerMrr'
+import { getLastClosedMovement, type MovementMonth } from '../lib/movement'
 
 export function OverviewPage() {
   const [months, setMonths] = useState<MonthlyMetric[] | null>(null)
   const [managerMonths, setManagerMonths] = useState<ManagerMonthlyMrr[] | null>(null)
+  const [movementMonths, setMovementMonths] = useState<MovementMonth[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [selection, setSelection] = useState<PeriodSelection>({ kind: 'preset', preset: 'last12' })
   const [managerFilter, setManagerFilter] = useState<string>(ALL_MANAGERS)
+  const [selectedMovementPeriod, setSelectedMovementPeriod] = useState<string | null>(null)
 
   useEffect(() => {
     Promise.all([
@@ -34,13 +39,24 @@ export function OverviewPage() {
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         return res.json()
       }),
+      fetch('/api/metrics/movement').then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        return res.json()
+      }),
     ])
-      .then(([monthlyData, byManagerData]) => {
+      .then(([monthlyData, byManagerData, movementData]) => {
         setMonths(monthlyData.months)
         setManagerMonths(byManagerData.months)
+        setMovementMonths(movementData.months)
       })
       .catch((err) => setError(String(err)))
   }, [])
+
+  // При смене диапазона периода сбрасываем ручной выбор месяца в панели
+  // «почему MRR изменился» — кликнутая ранее точка может выпасть из диапазона.
+  useEffect(() => {
+    setSelectedMovementPeriod(null)
+  }, [selection])
 
   const isAllManagers = managerFilter === ALL_MANAGERS
 
@@ -78,7 +94,12 @@ export function OverviewPage() {
       .map((m) => ({ period_start: m.period_start, deltaPct: deltas.get(m.period_start) ?? null }))
   }, [activeMrrMonths, filtered])
 
-  const ready = months !== null && managerMonths !== null
+  const lastClosedMovement = useMemo(() => (movementMonths ? getLastClosedMovement(movementMonths) : null), [movementMonths])
+  const movementByPeriod = useMemo(() => new Map((movementMonths ?? []).map((m) => [m.period_start, m])), [movementMonths])
+  const activeMovementPeriod = selectedMovementPeriod ?? lastClosedMovement?.period_start ?? null
+  const activeMovement = activeMovementPeriod ? (movementByPeriod.get(activeMovementPeriod) ?? null) : null
+
+  const ready = months !== null && managerMonths !== null && movementMonths !== null
 
   return (
     <div className="page">
@@ -105,6 +126,7 @@ export function OverviewPage() {
                 <p className="state-msg">Разбивка по менеджеру — позже</p>
               </div>
             )}
+            {isAllManagers && <MovementKpiCard movement={lastClosedMovement} />}
           </div>
 
           <MrrChartSection
@@ -113,7 +135,9 @@ export function OverviewPage() {
             managerMonths={filteredManagerMonths}
             managers={managers}
             colorMap={colorMap}
+            onPointClick={isAllManagers ? setSelectedMovementPeriod : undefined}
           />
+          {isAllManagers && <MrrMovementPanel movement={activeMovement} />}
           <MrrChangeStrip points={changePoints} />
 
           {isAllManagers ? (

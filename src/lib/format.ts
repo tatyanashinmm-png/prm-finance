@@ -1,6 +1,20 @@
 // Форматирование чисел/дат для витрины — переиспользуется всеми вкладками.
 
 const MONTHS_RU_SHORT = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек']
+const MONTHS_RU_FULL = [
+  'Январь',
+  'Февраль',
+  'Март',
+  'Апрель',
+  'Май',
+  'Июнь',
+  'Июль',
+  'Август',
+  'Сентябрь',
+  'Октябрь',
+  'Ноябрь',
+  'Декабрь',
+]
 
 /** "2026-08-01" -> "авг 26" */
 export function formatMonthShort(periodStart: string): string {
@@ -8,6 +22,14 @@ export function formatMonthShort(periodStart: string): string {
   const idx = Number(month) - 1
   const label = MONTHS_RU_SHORT[idx] ?? month
   return `${label} ${year.slice(2)}`
+}
+
+/** "2026-08-01" -> "Август 2026" (для заголовка панели «почему MRR изменился») */
+export function formatMonthFull(periodStart: string): string {
+  const [year, month] = periodStart.split('-')
+  const idx = Number(month) - 1
+  const label = MONTHS_RU_FULL[idx] ?? month
+  return `${label} ${year}`
 }
 
 /** 1936140 -> "1 936 140 ₽" (или с копейками, если decimals: true и есть дробная часть) */
@@ -40,4 +62,9 @@ export function formatPercent(value: number): string {
   }).format(Math.abs(value))
   const sign = value > 0 ? '+' : value < 0 ? '-' : ''
   return `${sign}${formatted}%`
+}
+
+/** 91234 -> "+91 234 ₽", -60000 -> "-60 000 ₽" (движение MRR: New/Churn/чистое) */
+export function formatSignedRub(value: number): string {
+  return value > 0 ? `+${formatRub(value)}` : formatRub(value)
 }

@@ -54,22 +54,33 @@ function makeChartTooltip(metricLabel: string) {
   }
 }
 
-function makeClosedDot(color: string) {
+// Клик вешаем прямо на сам SVG-кружок точки (а не на onClick графика) —
+// у Recharts v3 activeLabel/activeIndex в state обработчика onClick графика
+// не проставляется без предшествующих реальных mousemove-событий по точке
+// (проверено: в headless/автоматизированном клике всегда приходит null).
+// Прямой onClick на элементе точки срабатывает независимо от этого.
+function makeClosedDot(color: string, onPointClick?: (periodStart: string) => void) {
   return function ClosedDot(props: DotItemDotProps) {
     const { cx, cy, payload } = props
     const point = payload as ChartPoint
     if (point?.isCurrent || cx == null || cy == null) return null
-    return <circle cx={cx} cy={cy} r={3} fill={color} />
+    return (
+      <g style={onPointClick ? { cursor: 'pointer' } : undefined} onClick={() => onPointClick?.(point.period_start)}>
+        {onPointClick && <circle cx={cx} cy={cy} r={10} fill="transparent" />}
+        <circle cx={cx} cy={cy} r={3} fill={color} />
+      </g>
+    )
   }
 }
 
-function makeTrendDot(color: string) {
+function makeTrendDot(color: string, onPointClick?: (periodStart: string) => void) {
   return function TrendDot(props: DotItemDotProps) {
     const { cx, cy, payload } = props
     const point = payload as ChartPoint
     if (!point?.isCurrent || cx == null || cy == null) return null
     return (
-      <g>
+      <g style={onPointClick ? { cursor: 'pointer' } : undefined} onClick={() => onPointClick?.(point.period_start)}>
+        {onPointClick && <circle cx={cx} cy={cy} r={10} fill="transparent" />}
         <circle cx={cx} cy={cy} r={5} fill="var(--color-surface)" stroke={color} strokeWidth={2} />
         <text x={cx} y={cy - 14} textAnchor="middle" fontSize={11} fill="var(--color-text-secondary)">
           в процессе
@@ -85,15 +96,24 @@ interface MetricLineChartProps {
   getValue: (m: MonthlyMetric) => number | null
   color?: string
   showLabels: boolean
+  /** Клик по точке/месяцу графика — например, чтобы переключить панель «почему MRR изменился». */
+  onPointClick?: (periodStart: string) => void
 }
 
 /** Чистое тело line-графика (без карточки/заголовка) — переиспользуется MetricChart
  * (MRR/ARPU по отдельности) и MrrChartSection (MRR конкретного менеджера). */
-export function MetricLineChart({ months, metricLabel, getValue, color = '#0C39FF', showLabels }: MetricLineChartProps) {
+export function MetricLineChart({
+  months,
+  metricLabel,
+  getValue,
+  color = '#0C39FF',
+  showLabels,
+  onPointClick,
+}: MetricLineChartProps) {
   const data = buildChartData(months, getValue)
   const ChartTooltip = makeChartTooltip(metricLabel)
-  const ClosedDot = makeClosedDot(color)
-  const TrendDot = makeTrendDot(color)
+  const ClosedDot = makeClosedDot(color, onPointClick)
+  const TrendDot = makeTrendDot(color, onPointClick)
 
   if (data.length === 0) {
     return <p className="state-msg">Нет данных за выбранный период</p>

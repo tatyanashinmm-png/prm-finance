@@ -438,6 +438,41 @@ input {
   font-size: 10px;
 }
 
+/* --- карточка «Чистое движение MRR» --- */
+.movement-kpi__value--up {
+  color: var(--color-green);
+}
+
+.movement-kpi__value--down {
+  color: var(--color-red);
+}
+
+.movement-kpi__pills {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.movement-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.movement-pill--new {
+  background: rgba(22, 163, 74, 0.1);
+  color: var(--color-green);
+}
+
+.movement-pill--churn {
+  background: rgba(255, 93, 93, 0.1);
+  color: var(--color-red);
+}
+
 /* --- заголовок карточки с элементом управления --- */
 .card__header {
   display: flex;
@@ -507,6 +542,118 @@ input {
   height: 9px;
   border-radius: 2px;
   flex: none;
+}
+
+/* Recharts делает кликабельные элементы (точки/столбцы) фокусируемыми —
+   браузерный focus-outline на них выглядит как случайная рамка вокруг
+   графика. Сам клик по-прежнему работает, просто без этой рамки. */
+.chart-scroll svg *:focus {
+  outline: none;
+}
+
+/* --- панель «почему MRR изменился» --- */
+.movement-panel__header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.movement-panel__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.movement-panel__badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+
+.movement-panel__columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.movement-col {
+  /* Без этого grid-ячейка не сжимается по контенту (min-width: auto по
+     умолчанию), и длинные строки списка вылезают за карточку вместо того,
+     чтобы обрезаться многоточием. */
+  min-width: 0;
+}
+
+.movement-col__title {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.movement-col--new .movement-col__title {
+  color: var(--color-green);
+}
+
+.movement-col--churn .movement-col__title {
+  color: var(--color-red);
+}
+
+.movement-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.movement-list__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 13px;
+}
+
+.movement-list__item:last-child {
+  border-bottom: none;
+}
+
+.movement-list__main {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.movement-list__amount {
+  flex: none;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.movement-list__amount--pos {
+  color: var(--color-green);
+}
+
+.movement-list__amount--neg {
+  color: var(--color-red);
+}
+
+.movement-panel__summary {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
 }
 
 .card {
@@ -859,5 +1006,14 @@ input {
   .metrics-table th,
   .metrics-table td {
     padding: 8px;
+  }
+
+  .movement-panel__columns {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .movement-kpi__pills {
+    gap: 6px;
   }
 }

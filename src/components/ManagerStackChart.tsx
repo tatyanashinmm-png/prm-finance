@@ -67,11 +67,13 @@ interface ManagerStackChartProps {
   months: ManagerMonthlyMrr[]
   managers: string[]
   colorMap: Map<string, string>
+  /** Клик по столбцу/месяцу — например, чтобы переключить панель «почему MRR изменился». */
+  onPointClick?: (periodStart: string) => void
 }
 
 /** Стек MRR по менеджерам за месяц — тело графика без карточки/заголовка,
  * используется MrrChartSection в режиме «По менеджерам». */
-export function ManagerStackChart({ months, managers, colorMap }: ManagerStackChartProps) {
+export function ManagerStackChart({ months, managers, colorMap, onPointClick }: ManagerStackChartProps) {
   const data = buildStackData(months, managers)
   const StackTooltip = makeStackTooltip(managers, colorMap)
 
@@ -115,7 +117,12 @@ export function ManagerStackChart({ months, managers, colorMap }: ManagerStackCh
             {managers.map((manager) => (
               <Bar key={manager} dataKey={manager} stackId="managers" fill={colorMap.get(manager)} isAnimationActive={false}>
                 {data.map((d, i) => (
-                  <Cell key={i} fillOpacity={d.isCurrent ? 0.45 : 1} />
+                  <Cell
+                    key={i}
+                    fillOpacity={d.isCurrent ? 0.45 : 1}
+                    cursor={onPointClick ? 'pointer' : undefined}
+                    onClick={() => onPointClick?.(d.period_start)}
+                  />
                 ))}
               </Bar>
             ))}
