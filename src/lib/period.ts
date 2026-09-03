@@ -2,7 +2,13 @@
 // фильтрация чисто клиентская, эндпоинт /api/metrics/monthly всегда отдаёт
 // полный ряд месяцев. Будущие (ещё не наступившие) месяцы на графике не
 // показываем никогда — ни в одном из пресетов, ни в произвольном диапазоне.
-import { currentMonthStart, isFutureMonth, type MonthlyMetric } from './metrics'
+import { currentMonthStart, isFutureMonth } from './metrics'
+
+// Обобщено под любой ряд с полем period_start (не только MonthlyMetric) —
+// той же фильтрацией пользуется и разбивка MRR по менеджерам.
+interface Dated {
+  period_start: string
+}
 
 export type PeriodPreset = 'last12' | 'last6' | 'ytd' | 'all'
 
@@ -28,7 +34,7 @@ export function defaultCustomRange(): { start: string; end: string } {
   return { start: shiftMonth(current, -11), end: current }
 }
 
-export function filterByPreset(months: MonthlyMetric[], preset: PeriodPreset): MonthlyMetric[] {
+export function filterByPreset<T extends Dated>(months: T[], preset: PeriodPreset): T[] {
   const withoutFuture = months.filter((m) => !isFutureMonth(m.period_start))
   if (preset === 'all') return withoutFuture
 
@@ -44,13 +50,13 @@ export function filterByPreset(months: MonthlyMetric[], preset: PeriodPreset): M
   return withoutFuture.filter((m) => m.period_start >= rangeStart)
 }
 
-export function filterByCustomRange(months: MonthlyMetric[], start: string, end: string): MonthlyMetric[] {
+export function filterByCustomRange<T extends Dated>(months: T[], start: string, end: string): T[] {
   const withoutFuture = months.filter((m) => !isFutureMonth(m.period_start))
   const [from, to] = start <= end ? [start, end] : [end, start]
   return withoutFuture.filter((m) => m.period_start >= from && m.period_start <= to)
 }
 
-export function filterMonths(months: MonthlyMetric[], selection: PeriodSelection): MonthlyMetric[] {
+export function filterMonths<T extends Dated>(months: T[], selection: PeriodSelection): T[] {
   return selection.kind === 'custom'
     ? filterByCustomRange(months, selection.start, selection.end)
     : filterByPreset(months, selection.preset)

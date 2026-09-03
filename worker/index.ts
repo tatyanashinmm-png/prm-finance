@@ -5,6 +5,7 @@ import {
   getMonthlyInvoices,
   getArpuInvoices,
   getTariffs,
+  getInvoicesByManager,
   getUserByUsername,
   getUserBySessionTokenHash,
   registerFailedLogin,
@@ -144,6 +145,41 @@ app.get("/api/metrics/monthly", requireAuth, async (c) => {
       mrr: m.mrr,
       arpu: arpuByPeriod.get(m.periodStart) ?? null,
     }));
+  return c.json({ months });
+});
+
+// Разбивка MRR по менеджерам: та же golden-проверенная computeMonthlyMetrics,
+// вызванная отдельно на срезе invoices каждого менеджера — никакой новой
+// формулы MRR руками. total_mrr — сумма mrr всех менеджеров за месяц; должна
+// совпадать с mrr того же периода из /api/metrics/monthly (эндпоинт не менялся).
+app.get("/api/metrics/mrr-by-manager", requireAuth, async (c) => {
+  const rows = await getInvoicesByManager(c.env);
+
+  const rowsByManager = new Map<string, typeof rows>();
+  for (const row of rows) {
+    if (!rowsByManager.has(row.manager)) rowsByManager.set(row.manager, []);
+    rowsByManager.get(row.manager)!.push(row);
+  }
+  const managers = [...rowsByManager.keys()].sort((a, b) => a.localeCompare(b, "ru"));
+
+  const metricsByManager = new Map(managers.map((manager) => [manager, computeMonthlyMetrics(rowsByManager.get(manager)!)]));
+
+  const allPeriods = new Set<string>();
+  for (const metrics of metricsByManager.values()) {
+    for (const periodStart of metrics.keys()) allPeriods.add(periodStart);
+  }
+
+  const months = [...allPeriods]
+    .sort((a, b) => a.localeCompare(b))
+    .map((periodStart) => {
+      const byManager = managers.map((manager) => ({
+        manager,
+        mrr: metricsByManager.get(manager)?.get(periodStart)?.mrr ?? 0,
+      }));
+      const totalMrr = byManager.reduce((sum, m) => sum + m.mrr, 0);
+      return { period_start: periodStart, total_mrr: totalMrr, by_manager: byManager };
+    });
+
   return c.json({ months });
 });
 

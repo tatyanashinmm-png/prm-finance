@@ -181,6 +181,47 @@ input {
   margin-bottom: 0;
 }
 
+.page__filters {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* --- фильтр менеджера --- */
+.manager-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+}
+
+.manager-filter__label {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.manager-filter__select {
+  appearance: none;
+  background: var(--color-surface)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%236B6E85' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    no-repeat right 12px center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text);
+  padding: 7px 30px 7px 12px;
+  cursor: pointer;
+  max-width: 220px;
+}
+
+.manager-filter__select:hover {
+  border-color: var(--color-blue);
+}
+
 /* --- фильтр периода --- */
 .period-filter-wrap {
   display: flex;
@@ -402,12 +443,25 @@ input {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  row-gap: 10px;
   gap: 12px;
   margin-bottom: 16px;
 }
 
 .card__header .card__title {
   margin-bottom: 0;
+}
+
+.card__header-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.chart-mode-toggle {
+  padding: 3px;
 }
 
 .toggle {
@@ -425,6 +479,34 @@ input {
   width: 15px;
   height: 15px;
   cursor: pointer;
+}
+
+/* --- приглушённая карточка (метрика, ещё не разбитая по срезу) --- */
+.metric-card--muted {
+  opacity: 0.55;
+}
+
+/* --- легенда графика (стек по менеджерам) --- */
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-bottom: 12px;
+}
+
+.chart-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.chart-legend__swatch {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  flex: none;
 }
 
 .card {
@@ -528,6 +610,44 @@ input {
 .chart-tooltip__value {
   color: var(--color-lavender);
   font-variant-numeric: tabular-nums;
+}
+
+.chart-tooltip--wide {
+  min-width: 200px;
+}
+
+.chart-tooltip__row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-tooltip__swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex: none;
+}
+
+.chart-tooltip__row-label {
+  flex: 1;
+  color: rgba(255, 255, 255, 0.75);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chart-tooltip__row-value {
+  font-weight: 600;
+}
+
+.chart-tooltip__total {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  font-weight: 600;
 }
 
 /* --- список контрактов --- */
@@ -675,6 +795,21 @@ input {
   .page__header {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .page__filters {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .manager-filter {
+    justify-content: space-between;
+  }
+
+  .manager-filter__select {
+    flex: 1;
+    max-width: none;
   }
 
   .period-filter-wrap {

@@ -72,6 +72,34 @@ export async function getTariffs(env: DbEnv) {
     .all();
 }
 
+// Тот же контракт, что и у getMonthlyInvoices (InvoiceRow для worker/core/mrr.mjs),
+// плюс менеджер контракта — историю смены менеджера не храним, берём текущее
+// значение contracts.manager как есть. Пустой/NULL менеджер — строкой
+// NO_MANAGER_LABEL, а не отбрасывается, чтобы такие строки не терялись при
+// разбивке MRR по менеджерам (см. /api/metrics/mrr-by-manager).
+export const NO_MANAGER_LABEL = "Без менеджера";
+
+export async function getInvoicesByManager(env: DbEnv) {
+  const rows = await client(env)
+    .select({
+      periodStart: schema.periods.periodStart,
+      invoiceAmount: schema.invoices.invoiceAmount,
+      paidStatus: schema.invoices.paidStatus,
+      manager: schema.contracts.manager,
+    })
+    .from(schema.invoices)
+    .innerJoin(schema.contracts, eq(schema.invoices.contractId, schema.contracts.id))
+    .innerJoin(schema.periods, eq(schema.invoices.periodId, schema.periods.id))
+    .all();
+
+  return rows.map((row) => ({
+    periodStart: row.periodStart,
+    invoiceAmount: row.invoiceAmount,
+    paidStatus: row.paidStatus,
+    manager: row.manager && row.manager.trim() !== "" ? row.manager : NO_MANAGER_LABEL,
+  }));
+}
+
 // --- Пользователи и сессии ---
 
 export const LOGIN_LOCK_THRESHOLD = 5;
