@@ -36,6 +36,13 @@
       "when": 1787841336304,
       "tag": "0004_add_tariffs",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1788555234805,
+      "tag": "0005_add_clients_subscriptions",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, uniqueIndex, index } from "drizzle-orm/sqlite-core";
 
 export const contracts = sqliteTable("contracts", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -52,6 +52,55 @@ export const tariffs = sqliteTable(
   },
   (table) => [
     uniqueIndex("tariffs_contract_effective_unique").on(table.contractId, table.effectiveFrom),
+  ],
+);
+
+// Рефакторинг модели данных (шаг 1.1) — clients/subscriptions вводятся
+// АДДИТИВНО поверх contracts/invoices/tariffs, ничего в старой модели не
+// меняется. Пока обе таблицы пустые (данные заполняются отдельным шагом
+// 1.2); до переключения read-путей источником правды остаётся contracts.
+export const clients = sqliteTable(
+  "clients",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    name: text("name").notNull(),
+    // Ключ группировки — nameKey (нижний регистр name). Группировка сейчас
+    // приближённая: одноимённые разные юрлица допустимы, поэтому индекс
+    // обычный, не unique. inn — будущий более надёжный ключ, пока пусто.
+    nameKey: text("name_key").notNull(),
+    inn: text("inn"),
+    manager: text("manager"),
+    status: text("status"),
+    note: text("note"),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [index("clients_name_key_idx").on(table.nameKey)],
+);
+
+// contractNum — тот же натуральный ключ, что и contracts.contractNum
+// (1:1 к контракту сегодня, отсюда unique-индекс); редактируемый, для
+// заблокированных — BLOCK-<имя>, как и в contracts.
+export const subscriptions = sqliteTable(
+  "subscriptions",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    clientId: integer("client_id")
+      .notNull()
+      .references(() => clients.id),
+    contractNum: text("contract_num").notNull(),
+    legalEntity: text("legal_entity"),
+    status: text("status"),
+    manager: text("manager"),
+    startedAt: text("started_at"),
+    endedAt: text("ended_at"),
+    billingCycle: text("billing_cycle"),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("subscriptions_contract_num_unique").on(table.contractNum),
+    index("subscriptions_client_id_idx").on(table.clientId),
   ],
 );
 
