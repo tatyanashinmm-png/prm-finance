@@ -1,10 +1,19 @@
 import { useState } from 'react'
 import { formatMonthFull, formatMonthShort, formatRub, formatSignedRub } from '../lib/format'
 import { GroupToggle } from './GroupToggle'
+import { ContractSearchInput } from './ContractSearchInput'
 import { MovementColumns } from './MovementColumns'
 import { MovementContractTable } from './MovementContractTable'
 import { shiftMonth } from '../lib/period'
-import { hasReason, isConfirmedChurn, splitChurnByStatus, sumTariff, type MovementMonth } from '../lib/movement'
+import { matchesContractSearch } from '../lib/search'
+import {
+  filterMovementByPredicate,
+  hasReason,
+  isConfirmedChurn,
+  splitChurnByStatus,
+  sumTariff,
+  type MovementMonth,
+} from '../lib/movement'
 
 export type DrillKind = 'new' | 'churn' | 'net_count' | 'net_mrr'
 
@@ -43,21 +52,28 @@ export function MovementDrillThrough({
   const [noReasonOnly, setNoReasonOnly] = useState(false)
   const [confirmedOnly, setConfirmedOnly] = useState(false)
   const [unpaidOnly, setUnpaidOnly] = useState(false)
+  const [search, setSearch] = useState('')
   const effectiveGrouped = showGroupToggle && grouped
-  const emptyMessage = isCurrent ? IN_PROGRESS_EMPTY_MSG : undefined
+  // Поиск важнее «пока не завершился» — если что-то искали и не нашли,
+  // это «ничего не найдено», а не «данных ещё нет».
+  const emptyMessage = search.trim() ? 'Ничего не найдено' : isCurrent ? IN_PROGRESS_EMPTY_MSG : undefined
 
   // Разбивка и фильтры по статусу — считаются по полному churn_contracts
   // (уже отфильтрованному по менеджеру выше, в OverviewPage), НЕЗАВИСИМО от
-  // самих фильтров ниже — так сводка сверху остаётся «общей картиной», даже
-  // когда включён один из быстрых фильтров.
+  // самих фильтров ниже (включая поиск) — так сводка сверху остаётся
+  // «общей картиной», даже когда включён один из быстрых фильтров.
   const churnContracts = movement?.churn_contracts ?? []
   const { confirmed: confirmedContracts, unpaidActive: unpaidContracts } = splitChurnByStatus(churnContracts)
   const missingReasonCount = churnContracts.filter((c) => !hasReason(c.reason)).length
+
+  const searchedNewContracts = (movement?.new_contracts ?? []).filter((c) => matchesContractSearch(c, search))
+  const newSum = sumTariff(searchedNewContracts)
 
   const statusFilterActive = confirmedOnly || unpaidOnly
   const displayedChurnContracts = churnContracts
     .filter((c) => !statusFilterActive || (confirmedOnly && isConfirmedChurn(c)) || (unpaidOnly && !isConfirmedChurn(c)))
     .filter((c) => !noReasonOnly || !hasReason(c.reason))
+    .filter((c) => matchesContractSearch(c, search))
   const displayedChurnSum = sumTariff(displayedChurnContracts)
 
   return (
@@ -78,6 +94,7 @@ export function MovementDrillThrough({
               {isCurrent && <span className="movement-panel__badge">в процессе</span>}
             </h1>
             <div className="movement-panel__header-controls">
+              <ContractSearchInput value={search} onChange={setSearch} />
               {kind === 'churn' && churnContracts.length > 0 && (
                 <>
                   <label className="toggle">
@@ -122,15 +139,15 @@ export function MovementDrillThrough({
           <div className="card">
             {kind === 'new' && (
               <MovementContractTable
-                contracts={movement.new_contracts}
+                contracts={searchedNewContracts}
                 sign="pos"
                 periodColumnLabel="Первый оплаченный"
                 periodValue={formatMonthShort(movement.period_start)}
                 grouped={effectiveGrouped}
                 managers={managers}
                 colorMap={colorMap}
-                totalCount={movement.new_count}
-                totalSumLabel={formatSignedRub(movement.new_mrr)}
+                totalCount={searchedNewContracts.length}
+                totalSumLabel={formatSignedRub(newSum)}
                 emptyMessage={emptyMessage}
               />
             )}
@@ -152,7 +169,7 @@ export function MovementDrillThrough({
             )}
             {(kind === 'net_count' || kind === 'net_mrr') && (
               <MovementColumns
-                movement={movement}
+                movement={filterMovementByPredicate(movement, (c) => matchesContractSearch(c, search))}
                 grouped={effectiveGrouped}
                 managers={managers}
                 colorMap={colorMap}

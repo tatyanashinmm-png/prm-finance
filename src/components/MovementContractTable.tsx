@@ -1,5 +1,6 @@
 import { formatRub } from '../lib/format'
 import { groupContractsByManager, hasReason, type MovementContract } from '../lib/movement'
+import { CollapsibleGroup } from './CollapsibleGroup'
 import { StatusBadge } from './StatusBadge'
 
 function tariffCell(tariff: number | null, sign: 'pos' | 'neg') {
@@ -66,14 +67,18 @@ export function MovementContractTable({
       {grouped ? (
         <div className="movement-groups">
           {groupContractsByManager(contracts, managers).map((g) => (
-            <div key={g.manager} className="movement-group">
-              <div className="movement-group__header">
-                <span className="chart-legend__swatch" style={{ background: colorMap.get(g.manager) }} />
-                <span className="movement-group__manager">{g.manager}</span>
-                <span className="movement-group__subtotal">
-                  {g.count} · {tariffCell(g.sum, sign)}
-                </span>
-              </div>
+            <CollapsibleGroup
+              key={g.manager}
+              header={
+                <>
+                  <span className="chart-legend__swatch" style={{ background: colorMap.get(g.manager) }} />
+                  <span className="movement-group__manager">{g.manager}</span>
+                  <span className="movement-group__subtotal">
+                    {g.count} · {tariffCell(g.sum, sign)}
+                  </span>
+                </>
+              }
+            >
               <div className="table-scroll">
                 <table className="drill-table">
                   <thead>
@@ -101,7 +106,7 @@ export function MovementContractTable({
                   </tbody>
                 </table>
               </div>
-            </div>
+            </CollapsibleGroup>
           ))}
         </div>
       ) : (

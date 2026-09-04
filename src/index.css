@@ -640,6 +640,51 @@ input {
   flex-wrap: wrap;
 }
 
+/* --- поиск по клиенту/номеру контракта в детализациях --- */
+.drill-search {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.drill-search__input {
+  width: 260px;
+  max-width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--color-text);
+  padding: 7px 28px 7px 12px;
+  background: var(--color-surface);
+}
+
+.drill-search__input:focus {
+  outline: none;
+  border-color: var(--color-blue);
+}
+
+.drill-search__input::placeholder {
+  color: var(--color-text-secondary);
+}
+
+.drill-search__clear {
+  position: absolute;
+  right: 4px;
+  appearance: none;
+  background: none;
+  border: none;
+  font-size: 17px;
+  line-height: 1;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  padding: 3px 6px;
+}
+
+.drill-search__clear:hover {
+  color: var(--color-text);
+}
+
 .movement-panel__badge {
   font-size: 11px;
   font-weight: 600;
@@ -760,6 +805,34 @@ input {
   align-items: center;
   gap: 7px;
   margin-bottom: 4px;
+}
+
+/* Заголовок группы как кнопка — сворачивание/разворачивание (см. CollapsibleGroup). */
+.movement-group__header--toggle {
+  appearance: none;
+  background: none;
+  border: none;
+  width: 100%;
+  padding: 4px 0;
+  margin-bottom: 0;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  text-align: left;
+}
+
+.movement-group__header--toggle:hover .movement-group__manager {
+  color: var(--color-blue);
+}
+
+.movement-group__chevron {
+  flex: none;
+  font-size: 10px;
+  color: var(--color-text-secondary);
+  transition: transform 0.15s;
+}
+
+.movement-group__chevron--collapsed {
+  transform: rotate(-90deg);
 }
 
 .movement-group__manager {
@@ -1318,6 +1391,11 @@ input {
 
   .drill-header .page__title {
     flex-wrap: wrap;
+  }
+
+  .drill-search,
+  .drill-search__input {
+    width: 100%;
   }
 }
 

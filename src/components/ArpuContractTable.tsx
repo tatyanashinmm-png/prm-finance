@@ -1,5 +1,6 @@
 import { formatRub } from '../lib/format'
 import { groupArpuByManager, hasTariff, type MonthContract } from '../lib/monthContracts'
+import { CollapsibleGroup } from './CollapsibleGroup'
 
 function NoTariffList({ contracts }: { contracts: MonthContract[] }) {
   if (contracts.length === 0) return null
@@ -42,12 +43,18 @@ export function ArpuContractTable({ contracts, grouped, managers, colorMap, empt
           const groupWithTariff = g.contracts.filter((c) => hasTariff(c.tariff)).sort((a, b) => (b.tariff as number) - (a.tariff as number))
           const groupWithoutTariff = g.contracts.filter((c) => !hasTariff(c.tariff))
           return (
-            <div key={g.manager} className="movement-group">
-              <div className="movement-group__header">
-                <span className="chart-legend__swatch" style={{ background: colorMap.get(g.manager) }} />
-                <span className="movement-group__manager">{g.manager}</span>
-                <span className="movement-group__subtotal">{g.count} шт · {g.avgTariff === null ? 'нет тарифа' : `${formatRub(g.avgTariff)} в среднем`}</span>
-              </div>
+            <CollapsibleGroup
+              key={g.manager}
+              header={
+                <>
+                  <span className="chart-legend__swatch" style={{ background: colorMap.get(g.manager) }} />
+                  <span className="movement-group__manager">{g.manager}</span>
+                  <span className="movement-group__subtotal">
+                    {g.count} шт · {g.avgTariff === null ? 'нет тарифа' : `${formatRub(g.avgTariff)} в среднем`}
+                  </span>
+                </>
+              }
+            >
               {groupWithTariff.length > 0 && (
                 <div className="table-scroll">
                   <table className="drill-table">
@@ -72,7 +79,7 @@ export function ArpuContractTable({ contracts, grouped, managers, colorMap, empt
                 </div>
               )}
               <NoTariffList contracts={groupWithoutTariff} />
-            </div>
+            </CollapsibleGroup>
           )
         })}
       </div>

@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { formatMonthFull, formatRub } from '../lib/format'
 import { hasTariff, type MonthContract } from '../lib/monthContracts'
+import { matchesContractSearch } from '../lib/search'
 import { ALL_MANAGERS } from './ManagerFilter'
 import { GroupToggle } from './GroupToggle'
+import { ContractSearchInput } from './ContractSearchInput'
 import { MrrContractTable } from './MrrContractTable'
 import { ArpuContractTable } from './ArpuContractTable'
 
@@ -34,6 +36,7 @@ export function MrrArpuDrillThrough({
   const [contracts, setContracts] = useState<MonthContract[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [grouped, setGrouped] = useState(false)
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
     setContracts(null)
@@ -54,8 +57,12 @@ export function MrrArpuDrillThrough({
   // при выбранном менеджере не открывается (карточка приглушена на
   // обзоре), но фильтр применяем единообразно на всякий случай.
   const filteredContracts = contracts && !isAllManagers ? contracts.filter((c) => c.manager === managerFilter) : contracts
+  // Поиск — отдельный слой поверх фильтра «Менеджер»: сужает строки в
+  // таблице, но НЕ трогает заголовок «Общий ARPU за месяц» (это фиксированная
+  // цифра месяца, как на карточке, не «итог по видимым строкам»).
+  const searchedContracts = filteredContracts ? filteredContracts.filter((c) => matchesContractSearch(c, search)) : null
 
-  const emptyMessage = isCurrent ? IN_PROGRESS_EMPTY_MSG : undefined
+  const emptyMessage = search.trim() ? 'Ничего не найдено' : isCurrent ? IN_PROGRESS_EMPTY_MSG : undefined
 
   const label = kind === 'mrr' ? 'MRR' : 'ARPU'
 
@@ -70,15 +77,18 @@ export function MrrArpuDrillThrough({
           {label} · {formatMonthFull(month)}
           {isCurrent && <span className="movement-panel__badge">в процессе</span>}
         </h1>
-        {showGroupToggle && filteredContracts && filteredContracts.length > 0 && (
-          <GroupToggle grouped={grouped} onChange={setGrouped} />
+        {filteredContracts && filteredContracts.length > 0 && (
+          <div className="movement-panel__header-controls">
+            <ContractSearchInput value={search} onChange={setSearch} />
+            {showGroupToggle && <GroupToggle grouped={grouped} onChange={setGrouped} />}
+          </div>
         )}
       </div>
 
       {error && <p className="state-msg state-msg--error">Ошибка загрузки: {error}</p>}
       {!error && !filteredContracts && <p className="state-msg">Загрузка…</p>}
 
-      {!error && filteredContracts && (
+      {!error && filteredContracts && searchedContracts && (
         <>
           {kind === 'arpu' &&
             (() => {
@@ -96,17 +106,17 @@ export function MrrArpuDrillThrough({
           <div className="card">
             {kind === 'mrr' ? (
               <MrrContractTable
-                contracts={filteredContracts}
+                contracts={searchedContracts}
                 grouped={showGroupToggle && grouped}
                 managers={managers}
                 colorMap={colorMap}
-                totalCount={filteredContracts.length}
-                totalSum={filteredContracts.reduce((s, c) => s + c.invoice_amount, 0)}
+                totalCount={searchedContracts.length}
+                totalSum={searchedContracts.reduce((s, c) => s + c.invoice_amount, 0)}
                 emptyMessage={emptyMessage}
               />
             ) : (
               <ArpuContractTable
-                contracts={filteredContracts}
+                contracts={searchedContracts}
                 grouped={showGroupToggle && grouped}
                 managers={managers}
                 colorMap={colorMap}

@@ -1,5 +1,6 @@
 import { formatRub, formatSignedRub } from '../lib/format'
 import { groupContractsByManager, hasReason, type MovementContract, type MovementMonth } from '../lib/movement'
+import { CollapsibleGroup } from './CollapsibleGroup'
 
 function ContractRow({ contract, sign, showReason }: { contract: MovementContract; sign: 'pos' | 'neg'; showReason?: boolean }) {
   return (
@@ -56,20 +57,24 @@ function ColumnContent({
   return (
     <div className="movement-groups">
       {groups.map((g) => (
-        <div key={g.manager} className="movement-group">
-          <div className="movement-group__header">
-            <span className="chart-legend__swatch" style={{ background: colorMap.get(g.manager) }} />
-            <span className="movement-group__manager">{g.manager}</span>
-            <span className="movement-group__subtotal">
-              {g.count} · {sign === 'pos' ? `+${formatRub(g.sum)}` : `−${formatRub(g.sum)}`}
-            </span>
-          </div>
+        <CollapsibleGroup
+          key={g.manager}
+          header={
+            <>
+              <span className="chart-legend__swatch" style={{ background: colorMap.get(g.manager) }} />
+              <span className="movement-group__manager">{g.manager}</span>
+              <span className="movement-group__subtotal">
+                {g.count} · {sign === 'pos' ? `+${formatRub(g.sum)}` : `−${formatRub(g.sum)}`}
+              </span>
+            </>
+          }
+        >
           <ul className="movement-list">
             {g.contracts.map((c) => (
               <ContractRow key={c.contract_num} contract={c} sign={sign} showReason={showReason} />
             ))}
           </ul>
-        </div>
+        </CollapsibleGroup>
       ))}
     </div>
   )

@@ -68,15 +68,16 @@ export function lastClosedPeriod(months: { period_start: string }[]): string | n
 }
 
 /**
- * Пересчёт движения на срез одного менеджера: фильтруем new_contracts/
- * churn_contracts по manager на клиенте и пересчитываем штуки и суммы —
- * никакой новой формулы, просто сумма tariff отфильтрованных списков (то же
- * самое, что ядро делает для всех менеджеров сразу). Сохраняет знак
- * churn_mrr (отрицательный) — как в ответе API.
+ * Пересчёт движения на срез по произвольному предикату контракта: фильтруем
+ * new_contracts/churn_contracts и пересчитываем штуки и суммы — никакой
+ * новой формулы, просто сумма tariff отфильтрованных списков (то же самое,
+ * что ядро делает для всех контрактов сразу). Сохраняет знак churn_mrr
+ * (отрицательный) — как в ответе API. Общий кусок для фильтра по менеджеру
+ * и для поиска по клиенту/номеру контракта.
  */
-export function filterMovementByManager(month: MovementMonth, manager: string): MovementMonth {
-  const newContracts = month.new_contracts.filter((c) => c.manager === manager)
-  const churnContracts = month.churn_contracts.filter((c) => c.manager === manager)
+export function filterMovementByPredicate(month: MovementMonth, predicate: (c: MovementContract) => boolean): MovementMonth {
+  const newContracts = month.new_contracts.filter(predicate)
+  const churnContracts = month.churn_contracts.filter(predicate)
   const newMrr = newContracts.reduce((sum, c) => sum + (c.tariff ?? 0), 0)
   const churnMrrAbs = churnContracts.reduce((sum, c) => sum + (c.tariff ?? 0), 0)
   return {
@@ -90,6 +91,11 @@ export function filterMovementByManager(month: MovementMonth, manager: string): 
     new_contracts: newContracts,
     churn_contracts: churnContracts,
   }
+}
+
+/** Срез движения на одного менеджера — частный случай filterMovementByPredicate. */
+export function filterMovementByManager(month: MovementMonth, manager: string): MovementMonth {
+  return filterMovementByPredicate(month, (c) => c.manager === manager)
 }
 
 /** Абсолютная (не %) дельта штук к предыдущему месяцу — по полному ряду. */

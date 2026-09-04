@@ -1,5 +1,6 @@
 import { formatRub } from '../lib/format'
 import { groupMrrByManager, type MonthContract } from '../lib/monthContracts'
+import { CollapsibleGroup } from './CollapsibleGroup'
 import { StatusBadge } from './StatusBadge'
 
 interface MrrContractTableProps {
@@ -25,14 +26,18 @@ export function MrrContractTable({ contracts, grouped, managers, colorMap, total
       {grouped ? (
         <div className="movement-groups">
           {groupMrrByManager(sorted, managers).map((g) => (
-            <div key={g.manager} className="movement-group">
-              <div className="movement-group__header">
-                <span className="chart-legend__swatch" style={{ background: colorMap.get(g.manager) }} />
-                <span className="movement-group__manager">{g.manager}</span>
-                <span className="movement-group__subtotal">
-                  {g.count} · {formatRub(g.sum)}
-                </span>
-              </div>
+            <CollapsibleGroup
+              key={g.manager}
+              header={
+                <>
+                  <span className="chart-legend__swatch" style={{ background: colorMap.get(g.manager) }} />
+                  <span className="movement-group__manager">{g.manager}</span>
+                  <span className="movement-group__subtotal">
+                    {g.count} · {formatRub(g.sum)}
+                  </span>
+                </>
+              }
+            >
               <div className="table-scroll">
                 <table className="drill-table">
                   <thead>
@@ -58,7 +63,7 @@ export function MrrContractTable({ contracts, grouped, managers, colorMap, total
                   </tbody>
                 </table>
               </div>
-            </div>
+            </CollapsibleGroup>
           ))}
         </div>
       ) : (
