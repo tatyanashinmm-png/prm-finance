@@ -30,6 +30,7 @@ function ColumnContent({
   managers,
   colorMap,
   showReason,
+  emptyMessage,
 }: {
   contracts: MovementContract[]
   sign: 'pos' | 'neg'
@@ -37,8 +38,9 @@ function ColumnContent({
   managers: string[]
   colorMap: Map<string, string>
   showReason?: boolean
+  emptyMessage?: string
 }) {
-  if (contracts.length === 0) return <p className="state-msg">Нет</p>
+  if (contracts.length === 0) return <p className="state-msg">{emptyMessage ?? 'Нет'}</p>
 
   if (!grouped) {
     return (
@@ -80,18 +82,27 @@ interface MovementColumnsProps {
   colorMap: Map<string, string>
   /** Причина оттока в секции «Отток (−)» — только для drill-through («Чистый приток»/«Чистое движение MRR»), не для панели «почему». */
   showReason?: boolean
+  /** Текст пустой колонки — по умолчанию «Нет»; для текущего незакрытого месяца — «Пока нет». */
+  emptyMessage?: string
 }
 
 /** Тело «две колонки (Пришли +/Отток −) + строка итога» — без переключателя
  * и без карточки-обёртки, чтобы переиспользоваться и панелью «почему», и
  * drill-through по карточкам «Чистый приток»/«Чистое движение MRR». */
-export function MovementColumns({ movement, grouped, managers, colorMap, showReason }: MovementColumnsProps) {
+export function MovementColumns({ movement, grouped, managers, colorMap, showReason, emptyMessage }: MovementColumnsProps) {
   return (
     <>
       <div className="movement-panel__columns">
         <div className="movement-col movement-col--new">
           <div className="movement-col__title">Пришли / возобновили (+)</div>
-          <ColumnContent contracts={movement.new_contracts} sign="pos" grouped={grouped} managers={managers} colorMap={colorMap} />
+          <ColumnContent
+            contracts={movement.new_contracts}
+            sign="pos"
+            grouped={grouped}
+            managers={managers}
+            colorMap={colorMap}
+            emptyMessage={emptyMessage}
+          />
         </div>
         <div className="movement-col movement-col--churn">
           <div className="movement-col__title">Отток (−)</div>
@@ -102,6 +113,7 @@ export function MovementColumns({ movement, grouped, managers, colorMap, showRea
             managers={managers}
             colorMap={colorMap}
             showReason={showReason}
+            emptyMessage={emptyMessage}
           />
         </div>
       </div>

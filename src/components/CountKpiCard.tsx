@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react'
+
 interface CountKpiCardProps {
   label: string
   value: number | null
@@ -10,9 +12,11 @@ interface CountKpiCardProps {
   emptyMessage: string
   /** Клик по карточке — проваливание в детализацию (список контрактов). */
   onClick?: () => void
+  /** Доп. строка под дельтой — сейчас только у «Отток»: разбивка блок/не оплатили. */
+  breakdown?: ReactNode
 }
 
-export function CountKpiCard({ label, value, delta, isCurrent, invert, emptyMessage, onClick }: CountKpiCardProps) {
+export function CountKpiCard({ label, value, delta, isCurrent, invert, emptyMessage, onClick, breakdown }: CountKpiCardProps) {
   if (value === null) {
     return (
       <div className="card kpi-card">
@@ -39,6 +43,7 @@ export function CountKpiCard({ label, value, delta, isCurrent, invert, emptyMess
           {delta} к прошлому месяцу
         </div>
       )}
+      {breakdown}
     </>
   )
 

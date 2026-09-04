@@ -1,5 +1,5 @@
 import { formatRub } from '../lib/format'
-import { groupContractsByManager, hasReason, type MovementContract } from '../lib/movement'
+import { groupContractsByManager, hasReason, isConfirmedChurn, type MovementContract } from '../lib/movement'
 
 function tariffCell(tariff: number | null, sign: 'pos' | 'neg') {
   if (tariff === null) return '—'
@@ -15,6 +15,18 @@ function ReasonCell({ reason }: { reason: string | null | undefined }) {
   return (
     <td className="drill-table__reason">
       <span className="reason-badge reason-badge--missing">⚠ причина не указана</span>
+    </td>
+  )
+}
+
+function StatusCell({ contract }: { contract: MovementContract }) {
+  return (
+    <td>
+      {isConfirmedChurn(contract) ? (
+        <span className="status-badge status-badge--block">Блок</span>
+      ) : (
+        <span className="movement-panel__badge">Активен</span>
+      )}
     </td>
   )
 }
@@ -35,6 +47,11 @@ interface MovementContractTableProps {
   totalSumLabel: string
   /** Колонка «Причина оттока» — только в детализации Оттока. */
   showReason?: boolean
+  /** Колонка «Статус» (Блок/Активен) — только в детализации Оттока. */
+  showStatus?: boolean
+  /** Текст пустого состояния — по умолчанию «Нет контрактов за этот месяц»; для текущего
+   * незакрытого месяца вызывающий код передаёт «Пока нет…», чтобы не выглядело как ошибка. */
+  emptyMessage?: string
 }
 
 export function MovementContractTable({
@@ -48,9 +65,11 @@ export function MovementContractTable({
   totalCount,
   totalSumLabel,
   showReason,
+  showStatus,
+  emptyMessage,
 }: MovementContractTableProps) {
   if (contracts.length === 0) {
-    return <p className="state-msg">Нет контрактов за этот месяц</p>
+    return <p className="state-msg">{emptyMessage ?? 'Нет контрактов за этот месяц'}</p>
   }
 
   return (
@@ -72,6 +91,7 @@ export function MovementContractTable({
                     <tr>
                       <th>Клиент</th>
                       <th>{periodColumnLabel}</th>
+                      {showStatus && <th>Статус</th>}
                       {showReason && <th>Причина оттока</th>}
                       <th>Тариф</th>
                     </tr>
@@ -84,6 +104,7 @@ export function MovementContractTable({
                           {c.client_name}
                         </td>
                         <td>{periodValue}</td>
+                        {showStatus && <StatusCell contract={c} />}
                         {showReason && <ReasonCell reason={c.reason} />}
                         <td className={`movement-list__amount movement-list__amount--${sign}`}>{tariffCell(c.tariff, sign)}</td>
                       </tr>
@@ -102,6 +123,7 @@ export function MovementContractTable({
                 <th>Клиент</th>
                 <th>Менеджер</th>
                 <th>{periodColumnLabel}</th>
+                {showStatus && <th>Статус</th>}
                 {showReason && <th>Причина оттока</th>}
                 <th>Тариф</th>
               </tr>
@@ -115,6 +137,7 @@ export function MovementContractTable({
                   </td>
                   <td>{c.manager}</td>
                   <td>{periodValue}</td>
+                  {showStatus && <StatusCell contract={c} />}
                   {showReason && <ReasonCell reason={c.reason} />}
                   <td className={`movement-list__amount movement-list__amount--${sign}`}>{tariffCell(c.tariff, sign)}</td>
                 </tr>

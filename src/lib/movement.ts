@@ -8,11 +8,45 @@ export interface MovementContract {
   tariff: number | null
   /** Причина оттока (contracts.note) — только у контрактов в churn_contracts. */
   reason?: string | null
+  /** Статус контракта (contracts.status, «Активен»/«Блок») — только у churn_contracts. */
+  status?: string | null
 }
 
 /** Есть ли непустая причина оттока (используется и для бейджа, и для фильтра «Только без причины»). */
 export function hasReason(reason: string | null | undefined): boolean {
   return typeof reason === 'string' && reason.trim() !== ''
+}
+
+/**
+ * Подтверждённый отток = мягкий отток (уже посчитан ядром — это и есть
+ * churn_contracts) И статус контракта = «Блок». Всё остальное (в т.ч. любой
+ * статус кроме «Блок», сейчас в базе — только «Активен») — «не оплатили,
+ * но ещё активны». Так подтверждённый+неоплативший всегда в сумме дают
+ * ровно общий отток (инвариант), даже если в данных когда-нибудь появится
+ * непредвиденное значение статуса.
+ */
+export function isConfirmedChurn(contract: MovementContract): boolean {
+  return contract.status === 'Блок'
+}
+
+export interface ChurnStatusSplit {
+  confirmed: MovementContract[]
+  unpaidActive: MovementContract[]
+}
+
+/** Разбивка контрактов оттока на «подтверждённый (блок)» / «не оплатили (активны)». */
+export function splitChurnByStatus(contracts: MovementContract[]): ChurnStatusSplit {
+  const confirmed: MovementContract[] = []
+  const unpaidActive: MovementContract[] = []
+  for (const c of contracts) {
+    ;(isConfirmedChurn(c) ? confirmed : unpaidActive).push(c)
+  }
+  return { confirmed, unpaidActive }
+}
+
+/** Сумма тарифов — тот же способ, что везде в этом файле (используется для итогов под фильтрами). */
+export function sumTariff(contracts: MovementContract[]): number {
+  return contracts.reduce((sum, c) => sum + (c.tariff ?? 0), 0)
 }
 
 export interface MovementMonth {

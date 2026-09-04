@@ -4,7 +4,7 @@ import { GroupToggle } from './GroupToggle'
 import { MovementColumns } from './MovementColumns'
 import { MovementContractTable } from './MovementContractTable'
 import { shiftMonth } from '../lib/period'
-import { hasReason, type MovementMonth } from '../lib/movement'
+import { hasReason, isConfirmedChurn, splitChurnByStatus, sumTariff, type MovementMonth } from '../lib/movement'
 
 export type DrillKind = 'new' | 'churn' | 'net_count' | 'net_mrr'
 
@@ -15,10 +15,13 @@ const DRILL_LABELS: Record<DrillKind, string> = {
   net_mrr: 'Чистое движение MRR',
 }
 
+/** Пустое состояние для текущего незакрытого месяца — не «ошибка», а «ещё рано». */
+const IN_PROGRESS_EMPTY_MSG = 'Пока нет — месяц ещё не завершился'
+
 interface MovementDrillThroughProps {
   kind: DrillKind
   movement: MovementMonth | null
-  /** Опорный месяц ещё не закрыт — вместо таблиц показываем заглушку (как в панели «почему»). */
+  /** Опорный месяц ещё не закрыт — детализация всё равно открывается, только с пометкой и мягкими пустыми состояниями. */
   isCurrent: boolean
   /** «Список/По менеджерам» имеет смысл только при «Все менеджеры». */
   showGroupToggle: boolean
@@ -38,16 +41,24 @@ export function MovementDrillThrough({
 }: MovementDrillThroughProps) {
   const [grouped, setGrouped] = useState(false)
   const [noReasonOnly, setNoReasonOnly] = useState(false)
+  const [confirmedOnly, setConfirmedOnly] = useState(false)
+  const [unpaidOnly, setUnpaidOnly] = useState(false)
   const effectiveGrouped = showGroupToggle && grouped
+  const emptyMessage = isCurrent ? IN_PROGRESS_EMPTY_MSG : undefined
 
-  // Сколько контрактов оттока без причины — для баннера и для фильтра
-  // «Только без причины». Считаем по полному churn_contracts (без учёта
-  // самого фильтра «без причины»), но с учётом уже применённого фильтра
-  // «Менеджер» (movement сюда приходит уже отфильтрованным им из OverviewPage).
+  // Разбивка и фильтры по статусу — считаются по полному churn_contracts
+  // (уже отфильтрованному по менеджеру выше, в OverviewPage), НЕЗАВИСИМО от
+  // самих фильтров ниже — так сводка сверху остаётся «общей картиной», даже
+  // когда включён один из быстрых фильтров.
   const churnContracts = movement?.churn_contracts ?? []
+  const { confirmed: confirmedContracts, unpaidActive: unpaidContracts } = splitChurnByStatus(churnContracts)
   const missingReasonCount = churnContracts.filter((c) => !hasReason(c.reason)).length
-  const displayedChurnContracts = noReasonOnly ? churnContracts.filter((c) => !hasReason(c.reason)) : churnContracts
-  const displayedChurnSum = displayedChurnContracts.reduce((sum, c) => sum + (c.tariff ?? 0), 0)
+
+  const statusFilterActive = confirmedOnly || unpaidOnly
+  const displayedChurnContracts = churnContracts
+    .filter((c) => !statusFilterActive || (confirmedOnly && isConfirmedChurn(c)) || (unpaidOnly && !isConfirmedChurn(c)))
+    .filter((c) => !noReasonOnly || !hasReason(c.reason))
+  const displayedChurnSum = sumTariff(displayedChurnContracts)
 
   return (
     <div className="page">
@@ -67,62 +78,87 @@ export function MovementDrillThrough({
               {isCurrent && <span className="movement-panel__badge">в процессе</span>}
             </h1>
             <div className="movement-panel__header-controls">
-              {kind === 'churn' && !isCurrent && missingReasonCount > 0 && (
-                <label className="toggle">
-                  <input
-                    type="checkbox"
-                    checked={noReasonOnly}
-                    onChange={(e) => setNoReasonOnly(e.target.checked)}
-                  />
-                  <span>Только без причины</span>
-                </label>
+              {kind === 'churn' && churnContracts.length > 0 && (
+                <>
+                  <label className="toggle">
+                    <input type="checkbox" checked={confirmedOnly} onChange={(e) => setConfirmedOnly(e.target.checked)} />
+                    <span>Подтверждённый (блок)</span>
+                  </label>
+                  <label className="toggle">
+                    <input type="checkbox" checked={unpaidOnly} onChange={(e) => setUnpaidOnly(e.target.checked)} />
+                    <span>Не оплатили (активны)</span>
+                  </label>
+                  {missingReasonCount > 0 && (
+                    <label className="toggle">
+                      <input type="checkbox" checked={noReasonOnly} onChange={(e) => setNoReasonOnly(e.target.checked)} />
+                      <span>Только без причины</span>
+                    </label>
+                  )}
+                </>
               )}
-              {showGroupToggle && !isCurrent && <GroupToggle grouped={grouped} onChange={setGrouped} />}
+              {showGroupToggle && <GroupToggle grouped={grouped} onChange={setGrouped} />}
             </div>
           </div>
 
-          {kind === 'churn' && !isCurrent && missingReasonCount > 0 && (
+          {kind === 'churn' && churnContracts.length > 0 && (
+            <div className="drill-status-summary">
+              Подтверждённый отток (блок):{' '}
+              <span className="churn-breakdown__confirmed">
+                {confirmedContracts.length} шт · {formatRub(-sumTariff(confirmedContracts))}
+              </span>{' '}
+              · Не оплатили (активны):{' '}
+              <span className="churn-breakdown__unpaid">
+                {unpaidContracts.length} шт · {formatRub(-sumTariff(unpaidContracts))}
+              </span>
+            </div>
+          )}
+
+          {kind === 'churn' && missingReasonCount > 0 && (
             <div className="drill-warning-banner">
               ⚠ У {missingReasonCount} из {churnContracts.length} контрактов не указана причина оттока
             </div>
           )}
 
           <div className="card">
-            {isCurrent ? (
-              <p className="state-msg">Месяц ещё не закрыт — детализация появится после его завершения.</p>
-            ) : (
-              <>
-                {kind === 'new' && (
-                  <MovementContractTable
-                    contracts={movement.new_contracts}
-                    sign="pos"
-                    periodColumnLabel="Первый оплаченный"
-                    periodValue={formatMonthShort(movement.period_start)}
-                    grouped={effectiveGrouped}
-                    managers={managers}
-                    colorMap={colorMap}
-                    totalCount={movement.new_count}
-                    totalSumLabel={formatSignedRub(movement.new_mrr)}
-                  />
-                )}
-                {kind === 'churn' && (
-                  <MovementContractTable
-                    contracts={displayedChurnContracts}
-                    sign="neg"
-                    periodColumnLabel="Последний оплаченный"
-                    periodValue={formatMonthShort(shiftMonth(movement.period_start, -1))}
-                    grouped={effectiveGrouped}
-                    managers={managers}
-                    colorMap={colorMap}
-                    showReason
-                    totalCount={displayedChurnContracts.length}
-                    totalSumLabel={formatRub(-displayedChurnSum)}
-                  />
-                )}
-                {(kind === 'net_count' || kind === 'net_mrr') && (
-                  <MovementColumns movement={movement} grouped={effectiveGrouped} managers={managers} colorMap={colorMap} showReason />
-                )}
-              </>
+            {kind === 'new' && (
+              <MovementContractTable
+                contracts={movement.new_contracts}
+                sign="pos"
+                periodColumnLabel="Первый оплаченный"
+                periodValue={formatMonthShort(movement.period_start)}
+                grouped={effectiveGrouped}
+                managers={managers}
+                colorMap={colorMap}
+                totalCount={movement.new_count}
+                totalSumLabel={formatSignedRub(movement.new_mrr)}
+                emptyMessage={emptyMessage}
+              />
+            )}
+            {kind === 'churn' && (
+              <MovementContractTable
+                contracts={displayedChurnContracts}
+                sign="neg"
+                periodColumnLabel="Последний оплаченный"
+                periodValue={formatMonthShort(shiftMonth(movement.period_start, -1))}
+                grouped={effectiveGrouped}
+                managers={managers}
+                colorMap={colorMap}
+                showReason
+                showStatus
+                totalCount={displayedChurnContracts.length}
+                totalSumLabel={formatRub(-displayedChurnSum)}
+                emptyMessage={emptyMessage}
+              />
+            )}
+            {(kind === 'net_count' || kind === 'net_mrr') && (
+              <MovementColumns
+                movement={movement}
+                grouped={effectiveGrouped}
+                managers={managers}
+                colorMap={colorMap}
+                showReason
+                emptyMessage={emptyMessage}
+              />
             )}
           </div>
         </>

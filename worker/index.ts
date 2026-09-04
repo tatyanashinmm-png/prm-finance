@@ -234,6 +234,7 @@ app.get("/api/metrics/movement", requireAuth, async (c) => {
         clientName: ct.clientName,
         manager: ct.manager && ct.manager.trim() !== "" ? ct.manager : NO_MANAGER_LABEL,
         note: ct.note,
+        status: ct.status,
       },
     ]),
   );
@@ -250,12 +251,18 @@ app.get("/api/metrics/movement", requireAuth, async (c) => {
     }));
   }
 
-  // Причина оттока — то же поле contracts.note, что и колонка «Важно!» в
-  // таблице. Отдаём только для оттока (drill-through «Новые» его не показывает).
+  // Причина оттока (contracts.note) и статус контракта (contracts.status,
+  // «Активен»/«Блок» — тот же, что и в таблице) — отдаём только для оттока
+  // (drill-through «Новые» их не показывает). Статус нужен, чтобы поверх
+  // ядрового «мягкого» оттока (оплатил в пред. месяце, в текущем счёта
+  // нет/не оплачен) отличать подтверждённый отток (статус «Блок») от
+  // «не оплатили, но ещё активны» — само разбиение и формулы движения
+  // (churn_count/churn_mrr и т.д.) не меняются, это чисто доп. поле.
   function enrichChurn(contractNums: string[], atPeriod: string) {
     return enrich(contractNums, atPeriod).map((c) => ({
       ...c,
       reason: contractInfo.get(c.contract_num)?.note ?? null,
+      status: contractInfo.get(c.contract_num)?.status ?? null,
     }));
   }
 

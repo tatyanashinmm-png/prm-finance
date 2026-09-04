@@ -13,7 +13,7 @@ import { formatMonthFull, formatRub } from '../lib/format'
 import { computeDeltas, getKpiAtPeriod, isCurrentMonth, isFutureMonth, type MonthlyMetric } from '../lib/metrics'
 import { filterMonths, type PeriodSelection } from '../lib/period'
 import { collectManagers, buildManagerColorMap, type ManagerMonthlyMrr } from '../lib/managerMrr'
-import { filterMovementByManager, getMovementDeltasAtPeriod, type MovementMonth } from '../lib/movement'
+import { filterMovementByManager, getMovementDeltasAtPeriod, splitChurnByStatus, type MovementMonth } from '../lib/movement'
 
 const EMPTY_MSG = 'Нет данных за опорный месяц'
 
@@ -130,6 +130,12 @@ export function OverviewPage() {
     () => (activeMovementMonths && anchorPeriod ? getMovementDeltasAtPeriod(activeMovementMonths, anchorPeriod) : null),
     [activeMovementMonths, anchorPeriod],
   )
+  // Разбивка карточки «Отток» по статусу контракта — поверх ядрового
+  // (мягкого) оттока, сама формула churn_count/churn_mrr не меняется.
+  const churnStatusSplit = useMemo(
+    () => (movementAtAnchor ? splitChurnByStatus(movementAtAnchor.churn_contracts) : null),
+    [movementAtAnchor],
+  )
 
   const ready = months !== null && managerMonths !== null && movementMonths !== null
 
@@ -201,6 +207,14 @@ export function OverviewPage() {
               invert
               emptyMessage={EMPTY_MSG}
               onClick={movementAtAnchor ? () => setDrill('churn') : undefined}
+              breakdown={
+                churnStatusSplit && churnStatusSplit.confirmed.length + churnStatusSplit.unpaidActive.length > 0 ? (
+                  <div className="churn-breakdown">
+                    в блоке: <span className="churn-breakdown__confirmed">{churnStatusSplit.confirmed.length}</span> · активны, не
+                    оплатили: <span className="churn-breakdown__unpaid">{churnStatusSplit.unpaidActive.length}</span>
+                  </div>
+                ) : null
+              }
             />
             <CountKpiCard
               label="Чистый приток"

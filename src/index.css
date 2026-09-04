@@ -936,6 +936,44 @@ input {
   margin-bottom: 16px;
 }
 
+/* --- бейдж статуса контракта «Блок» в детализации оттока («Активен» — переиспользует .movement-panel__badge) --- */
+.status-badge--block {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-red);
+  background: rgba(255, 93, 93, 0.1);
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* --- сводка «подтверждённый (блок) / не оплатили (активны)» сверху детализации оттока --- */
+.drill-status-summary {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  margin-bottom: 12px;
+}
+
+.churn-breakdown__confirmed {
+  color: var(--color-red);
+  font-weight: 600;
+}
+
+.churn-breakdown__unpaid {
+  color: var(--color-orange);
+  font-weight: 600;
+}
+
+/* --- строка-разбивка под карточкой «Отток»: «в блоке: X · активны, не оплатили: Y» --- */
+.churn-breakdown {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
 /* Горизонтальный скролл для графиков: на узких экранах ResponsiveContainer
    рендерится на своей minWidth и не сжимается — этот враппер даёт ему
    прокрутку вместо того, чтобы всё дробить и накладывать подписи друг на друга. */
