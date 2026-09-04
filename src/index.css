@@ -974,6 +974,40 @@ input {
   color: var(--color-text-secondary);
 }
 
+/* --- детализация ARPU: контракты без тарифа, отдельным списком, не входят в среднее --- */
+.arpu-no-tariff {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.arpu-no-tariff__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 13px;
+}
+
+.arpu-no-tariff__item:last-child {
+  border-bottom: none;
+}
+
+.arpu-no-tariff-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.arpu-no-tariff-section__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: 8px;
+}
+
 /* Горизонтальный скролл для графиков: на узких экранах ResponsiveContainer
    рендерится на своей minWidth и не сжимается — этот враппер даёт ему
    прокрутку вместо того, чтобы всё дробить и накладывать подписи друг на друга. */

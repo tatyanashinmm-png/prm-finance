@@ -47,12 +47,16 @@ export async function getMonthlyInvoices(env: DbEnv) {
 // Форма строк — ровно InvoiceRow, которую ожидает worker/core/arpu.mjs
 // (contractNum/periodStart/paidStatus вместо invoiceAmount у MRR) —
 // та же форма, что использовалась в golden-тесте ARPU (scripts/test-golden-arpu.mjs).
+// invoiceAmount добавлен поверх этой формы для /api/metrics/movement (тариф
+// на дату при обогащении контрактов) и /api/metrics/month-contracts —
+// сама ARPU/движение его не читают, лишнее поле им не мешает.
 export async function getArpuInvoices(env: DbEnv) {
   return client(env)
     .select({
       contractNum: schema.contracts.contractNum,
       periodStart: schema.periods.periodStart,
       paidStatus: schema.invoices.paidStatus,
+      invoiceAmount: schema.invoices.invoiceAmount,
     })
     .from(schema.invoices)
     .innerJoin(schema.contracts, eq(schema.invoices.contractId, schema.contracts.id))

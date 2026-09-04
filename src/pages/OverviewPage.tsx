@@ -9,6 +9,7 @@ import { MrrChartSection } from '../components/MrrChartSection'
 import { MrrChangeStrip } from '../components/MrrChangeStrip'
 import { MrrMovementPanel } from '../components/MrrMovementPanel'
 import { MovementDrillThrough, type DrillKind } from '../components/MovementDrillThrough'
+import { MrrArpuDrillThrough, type MetricDrillKind } from '../components/MrrArpuDrillThrough'
 import { formatMonthFull, formatRub } from '../lib/format'
 import { computeDeltas, getKpiAtPeriod, isCurrentMonth, isFutureMonth, type MonthlyMetric } from '../lib/metrics'
 import { filterMonths, type PeriodSelection } from '../lib/period'
@@ -29,7 +30,7 @@ export function OverviewPage() {
   const [manualAnchorPeriod, setManualAnchorPeriod] = useState<string | null>(null)
   // Провалились в детализацию по одной из карточек движения — на том же
   // экране, вместо всего «Обзора», до нажатия «Назад».
-  const [drill, setDrill] = useState<DrillKind | null>(null)
+  const [drill, setDrill] = useState<DrillKind | MetricDrillKind | null>(null)
 
   useEffect(() => {
     Promise.all([
@@ -140,6 +141,20 @@ export function OverviewPage() {
   const ready = months !== null && managerMonths !== null && movementMonths !== null
 
   if (ready && drill) {
+    if (drill === 'mrr' || drill === 'arpu') {
+      return (
+        <MrrArpuDrillThrough
+          kind={drill}
+          month={anchorPeriod!}
+          isCurrent={isAnchorCurrent}
+          showGroupToggle={isAllManagers}
+          managers={managers}
+          colorMap={colorMap}
+          managerFilter={managerFilter}
+          onBack={() => setDrill(null)}
+        />
+      )
+    }
     return (
       <MovementDrillThrough
         kind={drill}
@@ -176,7 +191,14 @@ export function OverviewPage() {
           )}
 
           <div className="kpi-row">
-            <KpiCard label="MRR" kpi={mrrKpi} formatValue={(v) => formatRub(v)} emptyMessage={EMPTY_MSG} muted={isAnchorCurrent} />
+            <KpiCard
+              label="MRR"
+              kpi={mrrKpi}
+              formatValue={(v) => formatRub(v)}
+              emptyMessage={EMPTY_MSG}
+              muted={isAnchorCurrent}
+              onClick={mrrKpi ? () => setDrill('mrr') : undefined}
+            />
             {isAllManagers ? (
               <KpiCard
                 label="ARPU"
@@ -184,6 +206,7 @@ export function OverviewPage() {
                 formatValue={(v) => formatRub(v)}
                 emptyMessage={EMPTY_MSG}
                 muted={isAnchorCurrent}
+                onClick={arpuKpi ? () => setDrill('arpu') : undefined}
               />
             ) : (
               <div className="card kpi-card metric-card--muted">

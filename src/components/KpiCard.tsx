@@ -8,9 +8,11 @@ interface KpiCardProps {
   emptyMessage: string
   /** Опорный месяц ещё не закрыт — дельта показывается приглушённой (серой), а не зелёной/красной. */
   muted?: boolean
+  /** Клик по карточке — проваливание в детализацию (из каких контрактов складывается метрика). */
+  onClick?: () => void
 }
 
-export function KpiCard({ label, kpi, formatValue, emptyMessage, muted }: KpiCardProps) {
+export function KpiCard({ label, kpi, formatValue, emptyMessage, muted, onClick }: KpiCardProps) {
   if (!kpi) {
     return (
       <div className="card kpi-card">
@@ -22,8 +24,8 @@ export function KpiCard({ label, kpi, formatValue, emptyMessage, muted }: KpiCar
 
   const trend = muted ? 'flat' : kpi.deltaPct === null ? 'flat' : kpi.deltaPct >= 0 ? 'up' : 'down'
 
-  return (
-    <div className="card kpi-card">
+  const content = (
+    <>
       <div className="kpi-card__label">{label}</div>
       <div className="kpi-card__value">{formatValue(kpi.value)}</div>
       {kpi.deltaPct !== null && (
@@ -32,6 +34,16 @@ export function KpiCard({ label, kpi, formatValue, emptyMessage, muted }: KpiCar
           {formatPercent(kpi.deltaPct)} к прошлому месяцу
         </div>
       )}
-    </div>
+    </>
   )
+
+  if (onClick) {
+    return (
+      <button type="button" className="card kpi-card kpi-card--clickable" onClick={onClick}>
+        {content}
+      </button>
+    )
+  }
+
+  return <div className="card kpi-card">{content}</div>
 }

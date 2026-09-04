@@ -286,6 +286,51 @@ app.get("/api/metrics/movement", requireAuth, async (c) => {
   return c.json({ months });
 });
 
+// Контракты, из которых складывается MRR/ARPU одного конкретного месяца —
+// для drill-through по карточкам MRR/ARPU. Тот же фильтр, что ядро
+// использует для этих метрик (period_start === month И paid_status === "Да" —
+// см. worker/core/mrr.mjs reduceMetrics и worker/core/arpu.mjs
+// computeArpuForPeriod), применённый к тому же набору invoices — поэтому
+// Σ invoice_amount и среднее tariff (по непустым) сходятся с
+// /api/metrics/monthly сами по себе, без отдельной формулы.
+app.get("/api/metrics/month-contracts", requireAuth, async (c) => {
+  const month = c.req.query("month");
+  if (!month || !/^\d{4}-\d{2}-01$/.test(month)) {
+    return c.json({ error: "month обязателен, формат YYYY-MM-01" }, 400);
+  }
+
+  const [invoices, tariffs, contracts] = await Promise.all([
+    getArpuInvoices(c.env),
+    getTariffs(c.env),
+    getContracts(c.env),
+  ]);
+
+  const contractInfo = new Map(
+    contracts.map((ct) => [
+      ct.contractNum,
+      {
+        clientName: ct.clientName,
+        manager: ct.manager && ct.manager.trim() !== "" ? ct.manager : NO_MANAGER_LABEL,
+        status: ct.status,
+      },
+    ]),
+  );
+  const tariffIndex = buildTariffIndex(tariffs);
+
+  const monthContracts = invoices
+    .filter((inv) => inv.periodStart === month && inv.paidStatus === "Да")
+    .map((inv) => ({
+      contract_num: inv.contractNum,
+      client_name: contractInfo.get(inv.contractNum)?.clientName ?? inv.contractNum,
+      manager: contractInfo.get(inv.contractNum)?.manager ?? NO_MANAGER_LABEL,
+      status: contractInfo.get(inv.contractNum)?.status ?? null,
+      invoice_amount: inv.invoiceAmount,
+      tariff: tariffAt(tariffIndex, inv.contractNum, month),
+    }));
+
+  return c.json({ month, contracts: monthContracts });
+});
+
 // --- страница приложения: без валидной сессии редиректим на /login ---
 
 const ASSET_FILE_RE = /\.[a-zA-Z0-9]+$/;

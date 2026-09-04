@@ -1,5 +1,6 @@
 import { formatRub } from '../lib/format'
-import { groupContractsByManager, hasReason, isConfirmedChurn, type MovementContract } from '../lib/movement'
+import { groupContractsByManager, hasReason, type MovementContract } from '../lib/movement'
+import { StatusBadge } from './StatusBadge'
 
 function tariffCell(tariff: number | null, sign: 'pos' | 'neg') {
   if (tariff === null) return '—'
@@ -15,18 +16,6 @@ function ReasonCell({ reason }: { reason: string | null | undefined }) {
   return (
     <td className="drill-table__reason">
       <span className="reason-badge reason-badge--missing">⚠ причина не указана</span>
-    </td>
-  )
-}
-
-function StatusCell({ contract }: { contract: MovementContract }) {
-  return (
-    <td>
-      {isConfirmedChurn(contract) ? (
-        <span className="status-badge status-badge--block">Блок</span>
-      ) : (
-        <span className="movement-panel__badge">Активен</span>
-      )}
     </td>
   )
 }
@@ -104,7 +93,7 @@ export function MovementContractTable({
                           {c.client_name}
                         </td>
                         <td>{periodValue}</td>
-                        {showStatus && <StatusCell contract={c} />}
+                        {showStatus && <td><StatusBadge status={c.status} /></td>}
                         {showReason && <ReasonCell reason={c.reason} />}
                         <td className={`movement-list__amount movement-list__amount--${sign}`}>{tariffCell(c.tariff, sign)}</td>
                       </tr>
@@ -137,7 +126,7 @@ export function MovementContractTable({
                   </td>
                   <td>{c.manager}</td>
                   <td>{periodValue}</td>
-                  {showStatus && <StatusCell contract={c} />}
+                  {showStatus && <td><StatusBadge status={c.status} /></td>}
                   {showReason && <ReasonCell reason={c.reason} />}
                   <td className={`movement-list__amount movement-list__amount--${sign}`}>{tariffCell(c.tariff, sign)}</td>
                 </tr>
