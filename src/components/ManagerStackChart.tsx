@@ -7,6 +7,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  ReferenceLine,
   type TooltipContentProps,
 } from 'recharts'
 import { formatCompactRub, formatMonthShort, formatRub } from '../lib/format'
@@ -69,17 +70,21 @@ interface ManagerStackChartProps {
   colorMap: Map<string, string>
   /** Клик по столбцу/месяцу — например, чтобы переключить панель «почему MRR изменился». */
   onPointClick?: (periodStart: string) => void
+  /** Опорный месяц дашборда — подсвечивается на графике оранжевым кольцом/линией. */
+  anchorPeriod?: string | null
 }
 
 /** Стек MRR по менеджерам за месяц — тело графика без карточки/заголовка,
  * используется MrrChartSection в режиме «По менеджерам». */
-export function ManagerStackChart({ months, managers, colorMap, onPointClick }: ManagerStackChartProps) {
+export function ManagerStackChart({ months, managers, colorMap, onPointClick, anchorPeriod }: ManagerStackChartProps) {
   const data = buildStackData(months, managers)
   const StackTooltip = makeStackTooltip(managers, colorMap)
 
   if (data.length === 0) {
     return <p className="state-msg">Нет данных за выбранный период</p>
   }
+
+  const hasAnchor = anchorPeriod != null && data.some((d) => d.period_start === anchorPeriod)
 
   return (
     <>
@@ -114,12 +119,15 @@ export function ManagerStackChart({ months, managers, colorMap, onPointClick }: 
               width={72}
             />
             <Tooltip content={StackTooltip} cursor={{ fill: 'var(--color-bg)' }} />
+            {hasAnchor && <ReferenceLine x={anchorPeriod ?? undefined} stroke="var(--color-orange)" strokeDasharray="3 3" />}
             {managers.map((manager) => (
               <Bar key={manager} dataKey={manager} stackId="managers" fill={colorMap.get(manager)} isAnimationActive={false}>
                 {data.map((d, i) => (
                   <Cell
                     key={i}
                     fillOpacity={d.isCurrent ? 0.45 : 1}
+                    stroke={d.period_start === anchorPeriod ? 'var(--color-orange)' : undefined}
+                    strokeWidth={d.period_start === anchorPeriod ? 2 : undefined}
                     cursor={onPointClick ? 'pointer' : undefined}
                     onClick={() => onPointClick?.(d.period_start)}
                   />

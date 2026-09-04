@@ -8,9 +8,11 @@ interface MetricChartProps {
   metricLabel: string
   getValue: (m: MonthlyMetric) => number | null
   color?: string
+  /** Опорный месяц дашборда — подсвечивается на графике. */
+  anchorPeriod?: string | null
 }
 
-export function MetricChart({ months, title, metricLabel, getValue, color }: MetricChartProps) {
+export function MetricChart({ months, title, metricLabel, getValue, color, anchorPeriod }: MetricChartProps) {
   const [showLabels, setShowLabels] = useState(false)
 
   return (
@@ -22,7 +24,14 @@ export function MetricChart({ months, title, metricLabel, getValue, color }: Met
           <span>Значения на графике</span>
         </label>
       </div>
-      <MetricLineChart months={months} metricLabel={metricLabel} getValue={getValue} color={color} showLabels={showLabels} />
+      <MetricLineChart
+        months={months}
+        metricLabel={metricLabel}
+        getValue={getValue}
+        color={color}
+        showLabels={showLabels}
+        anchorPeriod={anchorPeriod}
+      />
     </div>
   )
 }

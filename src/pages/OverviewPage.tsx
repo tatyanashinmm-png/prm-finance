@@ -2,23 +2,19 @@ import { useEffect, useMemo, useState } from 'react'
 import { PeriodFilter } from '../components/PeriodFilter'
 import { ManagerFilter, ALL_MANAGERS } from '../components/ManagerFilter'
 import { KpiCard } from '../components/KpiCard'
+import { CountKpiCard } from '../components/CountKpiCard'
 import { MovementKpiCard } from '../components/MovementKpiCard'
 import { MetricChart } from '../components/MetricChart'
 import { MrrChartSection } from '../components/MrrChartSection'
 import { MrrChangeStrip } from '../components/MrrChangeStrip'
 import { MrrMovementPanel } from '../components/MrrMovementPanel'
-import { formatRub } from '../lib/format'
-import {
-  computeDeltas,
-  getLastClosedArpuKpi,
-  getLastClosedMrrKpi,
-  isCurrentMonth,
-  isFutureMonth,
-  type MonthlyMetric,
-} from '../lib/metrics'
+import { formatMonthFull, formatRub } from '../lib/format'
+import { computeDeltas, getKpiAtPeriod, isCurrentMonth, isFutureMonth, type MonthlyMetric } from '../lib/metrics'
 import { filterMonths, type PeriodSelection } from '../lib/period'
 import { collectManagers, buildManagerColorMap, type ManagerMonthlyMrr } from '../lib/managerMrr'
-import { getLastClosedMovement, type MovementMonth } from '../lib/movement'
+import { filterMovementByManager, getMovementDeltasAtPeriod, type MovementMonth } from '../lib/movement'
+
+const EMPTY_MSG = 'Нет данных за опорный месяц'
 
 export function OverviewPage() {
   const [months, setMonths] = useState<MonthlyMetric[] | null>(null)
@@ -27,7 +23,9 @@ export function OverviewPage() {
   const [error, setError] = useState<string | null>(null)
   const [selection, setSelection] = useState<PeriodSelection>({ kind: 'preset', preset: 'last12' })
   const [managerFilter, setManagerFilter] = useState<string>(ALL_MANAGERS)
-  const [selectedMovementPeriod, setSelectedMovementPeriod] = useState<string | null>(null)
+  // Ручной выбор опорного месяца (клик по графику) — переопределяет
+  // автоматический расчёт (последний закрытый месяц в выбранном периоде).
+  const [manualAnchorPeriod, setManualAnchorPeriod] = useState<string | null>(null)
 
   useEffect(() => {
     Promise.all([
@@ -52,10 +50,10 @@ export function OverviewPage() {
       .catch((err) => setError(String(err)))
   }, [])
 
-  // При смене диапазона периода сбрасываем ручной выбор месяца в панели
-  // «почему MRR изменился» — кликнутая ранее точка может выпасть из диапазона.
+  // При смене диапазона периода сбрасываем ручной выбор опорного месяца —
+  // кликнутая ранее точка может выпасть из нового диапазона.
   useEffect(() => {
-    setSelectedMovementPeriod(null)
+    setManualAnchorPeriod(null)
   }, [selection])
 
   const isAllManagers = managerFilter === ALL_MANAGERS
@@ -64,7 +62,7 @@ export function OverviewPage() {
   const colorMap = useMemo(() => buildManagerColorMap(managers), [managers])
 
   // MRR конкретного менеджера — синтетический ряд той же формы MonthlyMetric,
-  // чтобы без изменений переиспользовать KpiCard/MetricLineChart/getLastClosedMrrKpi.
+  // чтобы без изменений переиспользовать KpiCard/MetricLineChart/getKpiAtPeriod.
   const managerMrrView = useMemo<MonthlyMetric[] | null>(() => {
     if (!managerMonths || isAllManagers) return null
     return managerMonths.map((m) => ({
@@ -84,8 +82,6 @@ export function OverviewPage() {
     () => (managerMonths ? filterMonths(managerMonths, selection) : []),
     [managerMonths, selection],
   )
-  const mrrKpi = useMemo(() => (activeMrrMonths ? getLastClosedMrrKpi(activeMrrMonths) : null), [activeMrrMonths])
-  const arpuKpi = useMemo(() => (months ? getLastClosedArpuKpi(months) : null), [months])
   const changePoints = useMemo(() => {
     if (!activeMrrMonths) return []
     const deltas = computeDeltas(activeMrrMonths)
@@ -94,10 +90,42 @@ export function OverviewPage() {
       .map((m) => ({ period_start: m.period_start, deltaPct: deltas.get(m.period_start) ?? null }))
   }, [activeMrrMonths, filtered])
 
-  const lastClosedMovement = useMemo(() => (movementMonths ? getLastClosedMovement(movementMonths) : null), [movementMonths])
-  const movementByPeriod = useMemo(() => new Map((movementMonths ?? []).map((m) => [m.period_start, m])), [movementMonths])
-  const activeMovementPeriod = selectedMovementPeriod ?? lastClosedMovement?.period_start ?? null
-  const activeMovement = activeMovementPeriod ? (movementByPeriod.get(activeMovementPeriod) ?? null) : null
+  // Движение — пересчитано на срез менеджера при конкретном выборе (фильтруем
+  // new_contracts/churn_contracts по manager и пересчитываем штуки/суммы —
+  // никакой новой формулы, та же сумма tariff, что и в ядре).
+  const activeMovementMonths = useMemo(() => {
+    if (!movementMonths) return null
+    return isAllManagers ? movementMonths : movementMonths.map((m) => filterMovementByManager(m, managerFilter))
+  }, [movementMonths, isAllManagers, managerFilter])
+
+  // Опорный месяц: ручной выбор (клик по графику) — либо последний ЗАКРЫТЫЙ
+  // месяц внутри выбранного периода, либо (если в периоде нет закрытых —
+  // например период кончается текущим месяцем) последний месяц периода.
+  const anchorPeriod = useMemo(() => {
+    if (manualAnchorPeriod) return manualAnchorPeriod
+    const closed = filtered.filter((m) => !isCurrentMonth(m.period_start) && !isFutureMonth(m.period_start))
+    if (closed.length > 0) return closed[closed.length - 1].period_start
+    return filtered.length > 0 ? filtered[filtered.length - 1].period_start : null
+  }, [filtered, manualAnchorPeriod])
+
+  const isAnchorCurrent = anchorPeriod ? isCurrentMonth(anchorPeriod) : false
+
+  const mrrKpi = useMemo(
+    () => (activeMrrMonths && anchorPeriod ? getKpiAtPeriod(activeMrrMonths, anchorPeriod, (m) => m.mrr) : null),
+    [activeMrrMonths, anchorPeriod],
+  )
+  const arpuKpi = useMemo(
+    () => (months && anchorPeriod ? getKpiAtPeriod(months, anchorPeriod, (m) => m.arpu) : null),
+    [months, anchorPeriod],
+  )
+  const movementAtAnchor = useMemo(
+    () => (activeMovementMonths && anchorPeriod ? (activeMovementMonths.find((m) => m.period_start === anchorPeriod) ?? null) : null),
+    [activeMovementMonths, anchorPeriod],
+  )
+  const movementDeltas = useMemo(
+    () => (activeMovementMonths && anchorPeriod ? getMovementDeltasAtPeriod(activeMovementMonths, anchorPeriod) : null),
+    [activeMovementMonths, anchorPeriod],
+  )
 
   const ready = months !== null && managerMonths !== null && movementMonths !== null
 
@@ -116,17 +144,52 @@ export function OverviewPage() {
 
       {ready && (
         <>
+          {anchorPeriod && (
+            <div className="anchor-banner">
+              Показатели за: {formatMonthFull(anchorPeriod)}
+              {isAnchorCurrent && <span className="movement-panel__badge">в процессе</span>}
+            </div>
+          )}
+
           <div className="kpi-row">
-            <KpiCard label="MRR" kpi={mrrKpi} formatValue={(v) => formatRub(v)} emptyMessage="Нет ни одного закрытого месяца" />
+            <KpiCard label="MRR" kpi={mrrKpi} formatValue={(v) => formatRub(v)} emptyMessage={EMPTY_MSG} muted={isAnchorCurrent} />
             {isAllManagers ? (
-              <KpiCard label="ARPU" kpi={arpuKpi} formatValue={(v) => formatRub(v)} emptyMessage="Нет ни одного закрытого месяца" />
+              <KpiCard
+                label="ARPU"
+                kpi={arpuKpi}
+                formatValue={(v) => formatRub(v)}
+                emptyMessage={EMPTY_MSG}
+                muted={isAnchorCurrent}
+              />
             ) : (
               <div className="card kpi-card metric-card--muted">
                 <div className="kpi-card__label">ARPU</div>
                 <p className="state-msg">Разбивка по менеджеру — позже</p>
               </div>
             )}
-            {isAllManagers && <MovementKpiCard movement={lastClosedMovement} />}
+            <CountKpiCard
+              label="Новые"
+              value={movementAtAnchor?.new_count ?? null}
+              delta={movementDeltas?.newCountDelta ?? null}
+              isCurrent={isAnchorCurrent}
+              emptyMessage={EMPTY_MSG}
+            />
+            <CountKpiCard
+              label="Отток"
+              value={movementAtAnchor?.churn_count ?? null}
+              delta={movementDeltas?.churnCountDelta ?? null}
+              isCurrent={isAnchorCurrent}
+              invert
+              emptyMessage={EMPTY_MSG}
+            />
+            <CountKpiCard
+              label="Чистый приток"
+              value={movementAtAnchor?.net_count ?? null}
+              delta={movementDeltas?.netCountDelta ?? null}
+              isCurrent={isAnchorCurrent}
+              emptyMessage={EMPTY_MSG}
+            />
+            <MovementKpiCard movement={movementAtAnchor} isCurrent={isAnchorCurrent} />
           </div>
 
           <MrrChartSection
@@ -135,13 +198,26 @@ export function OverviewPage() {
             managerMonths={filteredManagerMonths}
             managers={managers}
             colorMap={colorMap}
-            onPointClick={isAllManagers ? setSelectedMovementPeriod : undefined}
+            onPointClick={setManualAnchorPeriod}
+            anchorPeriod={anchorPeriod}
           />
-          {isAllManagers && <MrrMovementPanel movement={activeMovement} />}
+          <MrrMovementPanel
+            movement={movementAtAnchor}
+            isCurrent={isAnchorCurrent}
+            showGroupToggle={isAllManagers}
+            managers={managers}
+            colorMap={colorMap}
+          />
           <MrrChangeStrip points={changePoints} />
 
           {isAllManagers ? (
-            <MetricChart months={filtered} title="ARPU по месяцам" metricLabel="ARPU" getValue={(m) => m.arpu} />
+            <MetricChart
+              months={filtered}
+              title="ARPU по месяцам"
+              metricLabel="ARPU"
+              getValue={(m) => m.arpu}
+              anchorPeriod={anchorPeriod}
+            />
           ) : (
             <div className="card metric-card--muted">
               <div className="card__title">ARPU по месяцам</div>

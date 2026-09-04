@@ -379,6 +379,17 @@ input {
   color: var(--color-text-inverse);
 }
 
+/* --- подпись опорного месяца над карточками KPI --- */
+.anchor-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: 12px;
+}
+
 /* --- ряд KPI-карточек (MRR + ARPU и т.д.) --- */
 .kpi-row {
   display: flex;
@@ -445,6 +456,10 @@ input {
 
 .movement-kpi__value--down {
   color: var(--color-red);
+}
+
+.movement-kpi__value--flat {
+  color: var(--color-text-secondary);
 }
 
 .movement-kpi__pills {
@@ -555,6 +570,7 @@ input {
 .movement-panel__header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 16px;
@@ -564,6 +580,13 @@ input {
   font-size: 15px;
   font-weight: 600;
   color: var(--color-text);
+}
+
+.movement-panel__header-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .movement-panel__badge {
@@ -645,6 +668,47 @@ input {
 
 .movement-list__amount--neg {
   color: var(--color-red);
+}
+
+/* --- режим «По менеджерам» в панели «почему» --- */
+.movement-groups {
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+/* Скролл — на всей группе целиком, а не на каждом маленьком списке внутри. */
+.movement-groups .movement-list {
+  max-height: none;
+  overflow: visible;
+}
+
+.movement-group + .movement-group {
+  margin-top: 14px;
+}
+
+.movement-group__header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 4px;
+}
+
+.movement-group__manager {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.movement-group__subtotal {
+  flex: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
 }
 
 .movement-panel__summary {
@@ -1015,5 +1079,18 @@ input {
 
   .movement-kpi__pills {
     gap: 6px;
+  }
+
+  .movement-panel__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .movement-panel__header-controls {
+    justify-content: space-between;
+  }
+
+  .anchor-banner {
+    flex-wrap: wrap;
   }
 }

@@ -11,8 +11,10 @@ interface MrrChartSectionProps {
   managerMonths: ManagerMonthlyMrr[]
   managers: string[]
   colorMap: Map<string, string>
-  /** Клик по точке/месяцу — переключает панель «почему MRR изменился». */
+  /** Клик по точке/месяцу — переставляет опорный месяц дашборда. */
   onPointClick?: (periodStart: string) => void
+  /** Опорный месяц дашборда — подсвечивается на графике. */
+  anchorPeriod?: string | null
 }
 
 export function MrrChartSection({
@@ -22,6 +24,7 @@ export function MrrChartSection({
   managers,
   colorMap,
   onPointClick,
+  anchorPeriod,
 }: MrrChartSectionProps) {
   const [mode, setMode] = useState<'line' | 'stack'>('line')
   const [showLabels, setShowLabels] = useState(false)
@@ -59,7 +62,13 @@ export function MrrChartSection({
         </div>
       </div>
       {showStack ? (
-        <ManagerStackChart months={managerMonths} managers={managers} colorMap={colorMap} onPointClick={onPointClick} />
+        <ManagerStackChart
+          months={managerMonths}
+          managers={managers}
+          colorMap={colorMap}
+          onPointClick={onPointClick}
+          anchorPeriod={anchorPeriod}
+        />
       ) : (
         <MetricLineChart
           months={months}
@@ -67,6 +76,7 @@ export function MrrChartSection({
           getValue={(m) => m.mrr}
           showLabels={showLabels}
           onPointClick={onPointClick}
+          anchorPeriod={anchorPeriod}
         />
       )}
     </div>

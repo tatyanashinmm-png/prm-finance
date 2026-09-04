@@ -75,28 +75,22 @@ export interface MetricKpi {
 }
 
 /**
- * Значение метрики за последний ЗАКРЫТЫЙ месяц (строго до текущего
- * календарного), у которого эта метрика вообще известна — пропускает месяцы
- * с null (например ARPU без ни одного оплаченного контракта с тарифом), + дельта.
+ * Значение метрики за КОНКРЕТНЫЙ (опорный) месяц + дельта к предыдущему —
+ * дельта считается по полному ряду (months НЕ обрезан фильтром периода),
+ * чтобы опорный месяц у края отображаемого диапазона тоже получил
+ * корректную дельту от месяца, который в диапазон не попал. Возвращает
+ * null, если месяца нет в ряду или метрика для него не посчитана (например
+ * ARPU без ни одного оплаченного контракта с тарифом).
  */
-function getLastClosedKpiBy(
+export function getKpiAtPeriod(
   months: MonthlyMetric[],
+  periodStart: string,
   getValue: (m: MonthlyMetric) => number | null,
 ): MetricKpi | null {
-  const closed = months.filter((m) => !isCurrentMonth(m.period_start) && !isFutureMonth(m.period_start))
+  const month = months.find((m) => m.period_start === periodStart)
+  if (!month) return null
+  const value = getValue(month)
+  if (value === null) return null
   const deltas = computeDeltasBy(months, getValue)
-  for (let i = closed.length - 1; i >= 0; i--) {
-    const value = getValue(closed[i])
-    if (value === null) continue
-    return { periodStart: closed[i].period_start, value, deltaPct: deltas.get(closed[i].period_start) ?? null }
-  }
-  return null
-}
-
-export function getLastClosedMrrKpi(months: MonthlyMetric[]): MetricKpi | null {
-  return getLastClosedKpiBy(months, (m) => m.mrr)
-}
-
-export function getLastClosedArpuKpi(months: MonthlyMetric[]): MetricKpi | null {
-  return getLastClosedKpiBy(months, (m) => m.arpu)
+  return { periodStart, value, deltaPct: deltas.get(periodStart) ?? null }
 }
