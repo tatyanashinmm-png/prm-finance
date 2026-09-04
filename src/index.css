@@ -688,7 +688,7 @@ input {
 
 .movement-list__item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   padding: 8px 0;
@@ -878,6 +878,7 @@ input {
   padding: 8px 10px;
   border-bottom: 1px solid var(--color-border);
   white-space: nowrap;
+  vertical-align: top;
 }
 
 .drill-table th {
@@ -897,6 +898,11 @@ input {
   text-align: right;
 }
 
+/* На мобильном (узкая карточка, таблица уже и так скроллится по
+   горизонтали — см. .table-scroll) причина остаётся однострочной с
+   обрезкой: перенос в 5-колоночной таблице на 375px превращает строки в
+   нечитаемые «башни» текста. Полный текст без обрезки — только там, где
+   для этого есть место (см. @media (min-width: 641px) ниже). */
 .drill-table__reason {
   max-width: 260px;
   overflow: hidden;
@@ -1240,5 +1246,26 @@ input {
 
   .drill-header .page__title {
     flex-wrap: wrap;
+  }
+}
+
+/* От планшета и шире место уже есть — причину оттока показываем целиком,
+   переносом на несколько строк, вместо однострочной обрезки (см. базовые
+   .drill-table__reason / .movement-list__reason выше, рассчитанные на
+   мобильный узкий экран). */
+@media (min-width: 641px) {
+  .drill-table td.drill-table__reason {
+    max-width: none;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .movement-list__reason {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    word-break: break-word;
   }
 }

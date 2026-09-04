@@ -11,9 +11,7 @@ function ContractRow({ contract, sign, showReason }: { contract: MovementContrac
         </div>
         {showReason &&
           (hasReason(contract.reason) ? (
-            <div className="movement-list__reason" title={contract.reason ?? undefined}>
-              {contract.reason}
-            </div>
+            <div className="movement-list__reason">{contract.reason}</div>
           ) : (
             <div className="movement-list__reason movement-list__reason--missing">⚠ причина не указана</div>
           ))}

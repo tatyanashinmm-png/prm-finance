@@ -9,9 +9,7 @@ function tariffCell(tariff: number | null, sign: 'pos' | 'neg') {
 function ReasonCell({ reason }: { reason: string | null | undefined }) {
   if (hasReason(reason)) {
     return (
-      <td className="drill-table__reason" title={reason ?? undefined}>
-        {reason}
-      </td>
+      <td className="drill-table__reason">{reason}</td>
     )
   }
   return (
