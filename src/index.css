@@ -181,6 +181,40 @@ input {
   margin-bottom: 0;
 }
 
+/* --- drill-through по карточкам движения --- */
+.drill-back {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  margin-bottom: 20px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-blue);
+  cursor: pointer;
+}
+
+.drill-back:hover {
+  text-decoration: underline;
+}
+
+.drill-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.drill-header .page__title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 0;
+}
+
 .page__filters {
   display: flex;
   align-items: flex-start;
@@ -409,6 +443,23 @@ input {
 /* --- KPI-карточка --- */
 .kpi-card {
   max-width: 320px;
+}
+
+/* Кликабельная KPI-карточка (drill-through) — рендерится как <button>,
+   сбрасываем нативные стили кнопки, остальное — те же классы, что у <div>. */
+.kpi-card--clickable {
+  appearance: none;
+  display: block;
+  width: 100%;
+  text-align: left;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.kpi-card--clickable:hover {
+  border-color: var(--color-blue);
+  box-shadow: 0 2px 10px rgba(12, 57, 255, 0.12);
 }
 
 .kpi-card__label {
@@ -791,6 +842,43 @@ input {
   font-variant-numeric: tabular-nums;
 }
 
+/* --- таблица detail-through (Новые/Отток) --- */
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.drill-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.drill-table th,
+.drill-table td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.drill-table th {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.drill-table tbody tr:hover {
+  background: var(--color-bg);
+}
+
+.drill-table th:last-child,
+.drill-table td:last-child {
+  text-align: right;
+}
+
 /* Горизонтальный скролл для графиков: на узких экранах ResponsiveContainer
    рендерится на своей minWidth и не сжимается — этот враппер даёт ему
    прокрутку вместо того, чтобы всё дробить и накладывать подписи друг на друга. */
@@ -1091,6 +1179,15 @@ input {
   }
 
   .anchor-banner {
+    flex-wrap: wrap;
+  }
+
+  .drill-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .drill-header .page__title {
     flex-wrap: wrap;
   }
 }

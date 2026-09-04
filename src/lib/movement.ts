@@ -76,3 +76,33 @@ export function getMovementDeltasAtPeriod(months: MovementMonth[], periodStart: 
     netCountDelta: computeMovementDeltasBy(months, (m) => m.net_count).get(periodStart) ?? null,
   }
 }
+
+export interface ManagerContractGroup {
+  manager: string
+  contracts: MovementContract[]
+  count: number
+  sum: number
+}
+
+/**
+ * Группировка контрактов по менеджеру с подытогами (кол-во + сумма тарифов) —
+ * используется и панелью «почему», и drill-through по карточкам движения.
+ * Порядок — как в managerOrder (тот же, что цвета/легенда витрины); менеджеры,
+ * которых там нет (не должно случаться, но на всякий случай), уходят в конец
+ * по алфавиту.
+ */
+export function groupContractsByManager(contracts: MovementContract[], managerOrder: string[]): ManagerContractGroup[] {
+  const byManager = new Map<string, MovementContract[]>()
+  for (const c of contracts) {
+    if (!byManager.has(c.manager)) byManager.set(c.manager, [])
+    byManager.get(c.manager)!.push(c)
+  }
+  const extra = [...byManager.keys()].filter((m) => !managerOrder.includes(m)).sort((a, b) => a.localeCompare(b, 'ru'))
+  const order = [...managerOrder, ...extra]
+  return order
+    .filter((m) => byManager.has(m))
+    .map((manager) => {
+      const list = byManager.get(manager)!
+      return { manager, contracts: list, count: list.length, sum: list.reduce((s, c) => s + (c.tariff ?? 0), 0) }
+    })
+}

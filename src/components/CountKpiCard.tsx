@@ -8,9 +8,11 @@ interface CountKpiCardProps {
   /** Для оттока: рост (delta > 0) — это ухудшение (красный), а не рост (зелёный). */
   invert?: boolean
   emptyMessage: string
+  /** Клик по карточке — проваливание в детализацию (список контрактов). */
+  onClick?: () => void
 }
 
-export function CountKpiCard({ label, value, delta, isCurrent, invert, emptyMessage }: CountKpiCardProps) {
+export function CountKpiCard({ label, value, delta, isCurrent, invert, emptyMessage, onClick }: CountKpiCardProps) {
   if (value === null) {
     return (
       <div className="card kpi-card">
@@ -26,8 +28,8 @@ export function CountKpiCard({ label, value, delta, isCurrent, invert, emptyMess
     trend = invert ? (positive ? 'down' : 'up') : positive ? 'up' : 'down'
   }
 
-  return (
-    <div className="card kpi-card">
+  const content = (
+    <>
       <div className="kpi-card__label">{label}</div>
       <div className="kpi-card__value">{value} шт</div>
       {delta !== null && (
@@ -37,6 +39,16 @@ export function CountKpiCard({ label, value, delta, isCurrent, invert, emptyMess
           {delta} к прошлому месяцу
         </div>
       )}
-    </div>
+    </>
   )
+
+  if (onClick) {
+    return (
+      <button type="button" className="card kpi-card kpi-card--clickable" onClick={onClick}>
+        {content}
+      </button>
+    )
+  }
+
+  return <div className="card kpi-card">{content}</div>
 }

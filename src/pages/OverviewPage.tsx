@@ -8,6 +8,7 @@ import { MetricChart } from '../components/MetricChart'
 import { MrrChartSection } from '../components/MrrChartSection'
 import { MrrChangeStrip } from '../components/MrrChangeStrip'
 import { MrrMovementPanel } from '../components/MrrMovementPanel'
+import { MovementDrillThrough, type DrillKind } from '../components/MovementDrillThrough'
 import { formatMonthFull, formatRub } from '../lib/format'
 import { computeDeltas, getKpiAtPeriod, isCurrentMonth, isFutureMonth, type MonthlyMetric } from '../lib/metrics'
 import { filterMonths, type PeriodSelection } from '../lib/period'
@@ -26,6 +27,9 @@ export function OverviewPage() {
   // Ручной выбор опорного месяца (клик по графику) — переопределяет
   // автоматический расчёт (последний закрытый месяц в выбранном периоде).
   const [manualAnchorPeriod, setManualAnchorPeriod] = useState<string | null>(null)
+  // Провалились в детализацию по одной из карточек движения — на том же
+  // экране, вместо всего «Обзора», до нажатия «Назад».
+  const [drill, setDrill] = useState<DrillKind | null>(null)
 
   useEffect(() => {
     Promise.all([
@@ -129,6 +133,20 @@ export function OverviewPage() {
 
   const ready = months !== null && managerMonths !== null && movementMonths !== null
 
+  if (ready && drill) {
+    return (
+      <MovementDrillThrough
+        kind={drill}
+        movement={movementAtAnchor}
+        isCurrent={isAnchorCurrent}
+        showGroupToggle={isAllManagers}
+        managers={managers}
+        colorMap={colorMap}
+        onBack={() => setDrill(null)}
+      />
+    )
+  }
+
   return (
     <div className="page">
       <div className="page__header">
@@ -173,6 +191,7 @@ export function OverviewPage() {
               delta={movementDeltas?.newCountDelta ?? null}
               isCurrent={isAnchorCurrent}
               emptyMessage={EMPTY_MSG}
+              onClick={movementAtAnchor ? () => setDrill('new') : undefined}
             />
             <CountKpiCard
               label="Отток"
@@ -181,6 +200,7 @@ export function OverviewPage() {
               isCurrent={isAnchorCurrent}
               invert
               emptyMessage={EMPTY_MSG}
+              onClick={movementAtAnchor ? () => setDrill('churn') : undefined}
             />
             <CountKpiCard
               label="Чистый приток"
@@ -188,8 +208,13 @@ export function OverviewPage() {
               delta={movementDeltas?.netCountDelta ?? null}
               isCurrent={isAnchorCurrent}
               emptyMessage={EMPTY_MSG}
+              onClick={movementAtAnchor ? () => setDrill('net_count') : undefined}
             />
-            <MovementKpiCard movement={movementAtAnchor} isCurrent={isAnchorCurrent} />
+            <MovementKpiCard
+              movement={movementAtAnchor}
+              isCurrent={isAnchorCurrent}
+              onClick={movementAtAnchor ? () => setDrill('net_mrr') : undefined}
+            />
           </div>
 
           <MrrChartSection
