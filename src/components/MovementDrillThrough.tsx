@@ -4,7 +4,7 @@ import { GroupToggle } from './GroupToggle'
 import { MovementColumns } from './MovementColumns'
 import { MovementContractTable } from './MovementContractTable'
 import { shiftMonth } from '../lib/period'
-import type { MovementMonth } from '../lib/movement'
+import { hasReason, type MovementMonth } from '../lib/movement'
 
 export type DrillKind = 'new' | 'churn' | 'net_count' | 'net_mrr'
 
@@ -37,7 +37,17 @@ export function MovementDrillThrough({
   onBack,
 }: MovementDrillThroughProps) {
   const [grouped, setGrouped] = useState(false)
+  const [noReasonOnly, setNoReasonOnly] = useState(false)
   const effectiveGrouped = showGroupToggle && grouped
+
+  // Сколько контрактов оттока без причины — для баннера и для фильтра
+  // «Только без причины». Считаем по полному churn_contracts (без учёта
+  // самого фильтра «без причины»), но с учётом уже применённого фильтра
+  // «Менеджер» (movement сюда приходит уже отфильтрованным им из OverviewPage).
+  const churnContracts = movement?.churn_contracts ?? []
+  const missingReasonCount = churnContracts.filter((c) => !hasReason(c.reason)).length
+  const displayedChurnContracts = noReasonOnly ? churnContracts.filter((c) => !hasReason(c.reason)) : churnContracts
+  const displayedChurnSum = displayedChurnContracts.reduce((sum, c) => sum + (c.tariff ?? 0), 0)
 
   return (
     <div className="page">
@@ -56,8 +66,26 @@ export function MovementDrillThrough({
               {DRILL_LABELS[kind]} · {formatMonthFull(movement.period_start)}
               {isCurrent && <span className="movement-panel__badge">в процессе</span>}
             </h1>
-            {showGroupToggle && !isCurrent && <GroupToggle grouped={grouped} onChange={setGrouped} />}
+            <div className="movement-panel__header-controls">
+              {kind === 'churn' && !isCurrent && missingReasonCount > 0 && (
+                <label className="toggle">
+                  <input
+                    type="checkbox"
+                    checked={noReasonOnly}
+                    onChange={(e) => setNoReasonOnly(e.target.checked)}
+                  />
+                  <span>Только без причины</span>
+                </label>
+              )}
+              {showGroupToggle && !isCurrent && <GroupToggle grouped={grouped} onChange={setGrouped} />}
+            </div>
           </div>
+
+          {kind === 'churn' && !isCurrent && missingReasonCount > 0 && (
+            <div className="drill-warning-banner">
+              ⚠ У {missingReasonCount} из {churnContracts.length} контрактов не указана причина оттока
+            </div>
+          )}
 
           <div className="card">
             {isCurrent ? (
@@ -79,19 +107,20 @@ export function MovementDrillThrough({
                 )}
                 {kind === 'churn' && (
                   <MovementContractTable
-                    contracts={movement.churn_contracts}
+                    contracts={displayedChurnContracts}
                     sign="neg"
                     periodColumnLabel="Последний оплаченный"
                     periodValue={formatMonthShort(shiftMonth(movement.period_start, -1))}
                     grouped={effectiveGrouped}
                     managers={managers}
                     colorMap={colorMap}
-                    totalCount={movement.churn_count}
-                    totalSumLabel={formatRub(movement.churn_mrr)}
+                    showReason
+                    totalCount={displayedChurnContracts.length}
+                    totalSumLabel={formatRub(-displayedChurnSum)}
                   />
                 )}
                 {(kind === 'net_count' || kind === 'net_mrr') && (
-                  <MovementColumns movement={movement} grouped={effectiveGrouped} managers={managers} colorMap={colorMap} />
+                  <MovementColumns movement={movement} grouped={effectiveGrouped} managers={managers} colorMap={colorMap} showReason />
                 )}
               </>
             )}

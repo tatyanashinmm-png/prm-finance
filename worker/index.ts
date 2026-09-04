@@ -230,7 +230,11 @@ app.get("/api/metrics/movement", requireAuth, async (c) => {
   const contractInfo = new Map(
     contracts.map((ct) => [
       ct.contractNum,
-      { clientName: ct.clientName, manager: ct.manager && ct.manager.trim() !== "" ? ct.manager : NO_MANAGER_LABEL },
+      {
+        clientName: ct.clientName,
+        manager: ct.manager && ct.manager.trim() !== "" ? ct.manager : NO_MANAGER_LABEL,
+        note: ct.note,
+      },
     ]),
   );
   const tariffIndex = buildTariffIndex(tariffs);
@@ -243,6 +247,15 @@ app.get("/api/metrics/movement", requireAuth, async (c) => {
       client_name: contractInfo.get(cn)?.clientName ?? cn,
       manager: contractInfo.get(cn)?.manager ?? NO_MANAGER_LABEL,
       tariff: tariffAt(tariffIndex, cn, atPeriod),
+    }));
+  }
+
+  // Причина оттока — то же поле contracts.note, что и колонка «Важно!» в
+  // таблице. Отдаём только для оттока (drill-through «Новые» его не показывает).
+  function enrichChurn(contractNums: string[], atPeriod: string) {
+    return enrich(contractNums, atPeriod).map((c) => ({
+      ...c,
+      reason: contractInfo.get(c.contract_num)?.note ?? null,
     }));
   }
 
@@ -259,7 +272,7 @@ app.get("/api/metrics/movement", requireAuth, async (c) => {
       churn_mrr: movement.churnMRR,
       net_mrr: movement.monthlyChange,
       new_contracts: enrich(movement.newContracts, curPeriodStart),
-      churn_contracts: enrich(movement.churnContracts, prevPeriodStart),
+      churn_contracts: enrichChurn(movement.churnContracts, prevPeriodStart),
     };
   });
 

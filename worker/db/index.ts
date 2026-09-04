@@ -22,6 +22,7 @@ export async function getContracts(env: DbEnv) {
       legalEntity: schema.contracts.legalEntity,
       status: schema.contracts.status,
       manager: schema.contracts.manager,
+      note: schema.contracts.note,
       updatedAt: schema.contracts.updatedAt,
     })
     .from(schema.contracts)

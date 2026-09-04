@@ -702,9 +702,27 @@ input {
 
 .movement-list__main {
   min-width: 0;
+}
+
+.movement-list__client {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* --- причина оттока в компактном списке (drill-through: Чистый приток/Чистое движение MRR) --- */
+.movement-list__reason {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.movement-list__reason--missing {
+  color: var(--color-red);
+  font-weight: 600;
 }
 
 .movement-list__amount {
@@ -877,6 +895,39 @@ input {
 .drill-table th:last-child,
 .drill-table td:last-child {
   text-align: right;
+}
+
+.drill-table__reason {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reason-badge--missing {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-red);
+  background: rgba(255, 93, 93, 0.1);
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* --- баннер «N из M без причины оттока» --- */
+.drill-warning-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-red);
+  background: rgba(255, 93, 93, 0.08);
+  border: 1px solid rgba(255, 93, 93, 0.3);
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  margin-bottom: 16px;
 }
 
 /* Горизонтальный скролл для графиков: на узких экранах ResponsiveContainer

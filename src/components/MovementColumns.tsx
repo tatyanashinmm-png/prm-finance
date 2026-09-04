@@ -1,12 +1,22 @@
 import { formatRub, formatSignedRub } from '../lib/format'
-import { groupContractsByManager, type MovementContract, type MovementMonth } from '../lib/movement'
+import { groupContractsByManager, hasReason, type MovementContract, type MovementMonth } from '../lib/movement'
 
-function ContractRow({ contract, sign }: { contract: MovementContract; sign: 'pos' | 'neg' }) {
+function ContractRow({ contract, sign, showReason }: { contract: MovementContract; sign: 'pos' | 'neg'; showReason?: boolean }) {
   return (
     <li className="movement-list__item">
       <div className="movement-list__main">
-        <span className="contract-num">{contract.contract_num}</span>
-        {contract.client_name}
+        <div className="movement-list__client">
+          <span className="contract-num">{contract.contract_num}</span>
+          {contract.client_name}
+        </div>
+        {showReason &&
+          (hasReason(contract.reason) ? (
+            <div className="movement-list__reason" title={contract.reason ?? undefined}>
+              {contract.reason}
+            </div>
+          ) : (
+            <div className="movement-list__reason movement-list__reason--missing">⚠ причина не указана</div>
+          ))}
       </div>
       <span className={`movement-list__amount movement-list__amount--${sign}`}>
         {contract.tariff === null ? '—' : sign === 'pos' ? `+${formatRub(contract.tariff)}` : `−${formatRub(contract.tariff)}`}
@@ -21,12 +31,14 @@ function ColumnContent({
   grouped,
   managers,
   colorMap,
+  showReason,
 }: {
   contracts: MovementContract[]
   sign: 'pos' | 'neg'
   grouped: boolean
   managers: string[]
   colorMap: Map<string, string>
+  showReason?: boolean
 }) {
   if (contracts.length === 0) return <p className="state-msg">Нет</p>
 
@@ -34,7 +46,7 @@ function ColumnContent({
     return (
       <ul className="movement-list">
         {contracts.map((c) => (
-          <ContractRow key={c.contract_num} contract={c} sign={sign} />
+          <ContractRow key={c.contract_num} contract={c} sign={sign} showReason={showReason} />
         ))}
       </ul>
     )
@@ -54,7 +66,7 @@ function ColumnContent({
           </div>
           <ul className="movement-list">
             {g.contracts.map((c) => (
-              <ContractRow key={c.contract_num} contract={c} sign={sign} />
+              <ContractRow key={c.contract_num} contract={c} sign={sign} showReason={showReason} />
             ))}
           </ul>
         </div>
@@ -68,12 +80,14 @@ interface MovementColumnsProps {
   grouped: boolean
   managers: string[]
   colorMap: Map<string, string>
+  /** Причина оттока в секции «Отток (−)» — только для drill-through («Чистый приток»/«Чистое движение MRR»), не для панели «почему». */
+  showReason?: boolean
 }
 
 /** Тело «две колонки (Пришли +/Отток −) + строка итога» — без переключателя
  * и без карточки-обёртки, чтобы переиспользоваться и панелью «почему», и
  * drill-through по карточкам «Чистый приток»/«Чистое движение MRR». */
-export function MovementColumns({ movement, grouped, managers, colorMap }: MovementColumnsProps) {
+export function MovementColumns({ movement, grouped, managers, colorMap, showReason }: MovementColumnsProps) {
   return (
     <>
       <div className="movement-panel__columns">
@@ -89,6 +103,7 @@ export function MovementColumns({ movement, grouped, managers, colorMap }: Movem
             grouped={grouped}
             managers={managers}
             colorMap={colorMap}
+            showReason={showReason}
           />
         </div>
       </div>

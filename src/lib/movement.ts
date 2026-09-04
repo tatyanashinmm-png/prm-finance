@@ -6,6 +6,13 @@ export interface MovementContract {
   client_name: string
   manager: string
   tariff: number | null
+  /** Причина оттока (contracts.note) — только у контрактов в churn_contracts. */
+  reason?: string | null
+}
+
+/** Есть ли непустая причина оттока (используется и для бейджа, и для фильтра «Только без причины»). */
+export function hasReason(reason: string | null | undefined): boolean {
+  return typeof reason === 'string' && reason.trim() !== ''
 }
 
 export interface MovementMonth {

@@ -1,9 +1,24 @@
 import { formatRub } from '../lib/format'
-import { groupContractsByManager, type MovementContract } from '../lib/movement'
+import { groupContractsByManager, hasReason, type MovementContract } from '../lib/movement'
 
 function tariffCell(tariff: number | null, sign: 'pos' | 'neg') {
   if (tariff === null) return '—'
   return sign === 'pos' ? `+${formatRub(tariff)}` : `−${formatRub(tariff)}`
+}
+
+function ReasonCell({ reason }: { reason: string | null | undefined }) {
+  if (hasReason(reason)) {
+    return (
+      <td className="drill-table__reason" title={reason ?? undefined}>
+        {reason}
+      </td>
+    )
+  }
+  return (
+    <td className="drill-table__reason">
+      <span className="reason-badge reason-badge--missing">⚠ причина не указана</span>
+    </td>
+  )
 }
 
 interface MovementContractTableProps {
@@ -16,9 +31,12 @@ interface MovementContractTableProps {
   grouped: boolean
   managers: string[]
   colorMap: Map<string, string>
-  /** Итог — по построению равен значению карточки, с которой провалились (инвариант). */
+  /** Итог — по построению равен значению карточки, с которой провалились (инвариант), либо
+   * пересчитан вызывающим кодом под активный фильтр (напр. «Только без причины»). */
   totalCount: number
   totalSumLabel: string
+  /** Колонка «Причина оттока» — только в детализации Оттока. */
+  showReason?: boolean
 }
 
 export function MovementContractTable({
@@ -31,6 +49,7 @@ export function MovementContractTable({
   colorMap,
   totalCount,
   totalSumLabel,
+  showReason,
 }: MovementContractTableProps) {
   if (contracts.length === 0) {
     return <p className="state-msg">Нет контрактов за этот месяц</p>
@@ -55,6 +74,7 @@ export function MovementContractTable({
                     <tr>
                       <th>Клиент</th>
                       <th>{periodColumnLabel}</th>
+                      {showReason && <th>Причина оттока</th>}
                       <th>Тариф</th>
                     </tr>
                   </thead>
@@ -66,6 +86,7 @@ export function MovementContractTable({
                           {c.client_name}
                         </td>
                         <td>{periodValue}</td>
+                        {showReason && <ReasonCell reason={c.reason} />}
                         <td className={`movement-list__amount movement-list__amount--${sign}`}>{tariffCell(c.tariff, sign)}</td>
                       </tr>
                     ))}
@@ -83,6 +104,7 @@ export function MovementContractTable({
                 <th>Клиент</th>
                 <th>Менеджер</th>
                 <th>{periodColumnLabel}</th>
+                {showReason && <th>Причина оттока</th>}
                 <th>Тариф</th>
               </tr>
             </thead>
@@ -95,6 +117,7 @@ export function MovementContractTable({
                   </td>
                   <td>{c.manager}</td>
                   <td>{periodValue}</td>
+                  {showReason && <ReasonCell reason={c.reason} />}
                   <td className={`movement-list__amount movement-list__amount--${sign}`}>{tariffCell(c.tariff, sign)}</td>
                 </tr>
               ))}
