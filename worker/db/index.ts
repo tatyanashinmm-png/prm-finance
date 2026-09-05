@@ -31,7 +31,10 @@ export async function getContracts(env: DbEnv) {
 
 // Форма строк — ровно InvoiceRow, которую ожидает worker/core/mrr.mjs
 // (periodStart/invoiceAmount/paidStatus), чтобы маршрут мог передать
-// результат прямо в ядро без дополнительного маппинга.
+// результат прямо в ядро без дополнительного маппинга. contractNum ядру
+// не нужен, но читаем через invoices+subscriptions+periods — тот же путь,
+// что и у getArpuInvoices/getTariffs (шаг 1.4 рефакторинга модели), для
+// единообразия. Join many-to-one (subscriptions.id — PK), строки не множатся.
 export async function getMonthlyInvoices(env: DbEnv) {
   return client(env)
     .select({
@@ -41,6 +44,7 @@ export async function getMonthlyInvoices(env: DbEnv) {
     })
     .from(schema.invoices)
     .innerJoin(schema.periods, eq(schema.invoices.periodId, schema.periods.id))
+    .innerJoin(schema.subscriptions, eq(schema.invoices.subscriptionId, schema.subscriptions.id))
     .all();
 }
 
@@ -50,30 +54,35 @@ export async function getMonthlyInvoices(env: DbEnv) {
 // invoiceAmount добавлен поверх этой формы для /api/metrics/movement (тариф
 // на дату при обогащении контрактов) и /api/metrics/month-contracts —
 // сама ARPU/движение его не читают, лишнее поле им не мешает.
+// contractNum читается через invoices.subscriptionId -> subscriptions
+// (шаг 1.4 рефакторинга модели) — subscriptions.contractNum 1:1 совпадает
+// со старым contracts.contractNum (мост проверен, mismatch=0 в шаге 1.3b).
 export async function getArpuInvoices(env: DbEnv) {
   return client(env)
     .select({
-      contractNum: schema.contracts.contractNum,
+      contractNum: schema.subscriptions.contractNum,
       periodStart: schema.periods.periodStart,
       paidStatus: schema.invoices.paidStatus,
       invoiceAmount: schema.invoices.invoiceAmount,
     })
     .from(schema.invoices)
-    .innerJoin(schema.contracts, eq(schema.invoices.contractId, schema.contracts.id))
+    .innerJoin(schema.subscriptions, eq(schema.invoices.subscriptionId, schema.subscriptions.id))
     .innerJoin(schema.periods, eq(schema.invoices.periodId, schema.periods.id))
     .all();
 }
 
 // Форма строк — ровно TariffRow, которую ожидает worker/core/arpu.mjs.
+// contractNum — через tariffs.subscriptionId -> subscriptions (шаг 1.4),
+// тем же приёмом, что и в getArpuInvoices.
 export async function getTariffs(env: DbEnv) {
   return client(env)
     .select({
-      contractNum: schema.contracts.contractNum,
+      contractNum: schema.subscriptions.contractNum,
       tariff: schema.tariffs.tariff,
       effectiveFrom: schema.tariffs.effectiveFrom,
     })
     .from(schema.tariffs)
-    .innerJoin(schema.contracts, eq(schema.tariffs.contractId, schema.contracts.id))
+    .innerJoin(schema.subscriptions, eq(schema.tariffs.subscriptionId, schema.subscriptions.id))
     .all();
 }
 
