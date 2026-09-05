@@ -15,10 +15,13 @@ const DB_NAME = "prm-finance-db";
 const BATCH_SIZE = 300; // операторов на один вызов wrangler d1 execute — как в import-sheet.mjs
 const TMP_PREFIX = "scripts/.tmp-build-clients-"; // покрыто .gitignore: scripts/.tmp-*.sql
 
+const isRemote = process.argv.includes("--remote");
+const target = isRemote ? "--remote" : "--local";
+
 function queryLocalD1(sql) {
   const out = execFileSync(
     "npx",
-    ["wrangler", "d1", "execute", DB_NAME, "--local", "--command", sql, "--json"],
+    ["wrangler", "d1", "execute", DB_NAME, target, "--command", sql, "--json"],
     { encoding: "utf8", maxBuffer: 1024 * 1024 * 20 },
   );
   return JSON.parse(out)[0].results;
@@ -31,7 +34,7 @@ function execSqlBatch(sqlStatements, label) {
     const file = `${TMP_PREFIX}${label}-${i}.sql`;
     writeFileSync(file, chunk.join("\n"), "utf8");
     try {
-      execFileSync("npx", ["wrangler", "d1", "execute", DB_NAME, "--local", "--file", file], {
+      execFileSync("npx", ["wrangler", "d1", "execute", DB_NAME, target, "--file", file], {
         stdio: ["ignore", "ignore", "inherit"],
       });
     } finally {
@@ -48,6 +51,7 @@ function sqlQuote(value) {
 }
 
 function main() {
+  console.log("TARGET:", target);
   const lines = [];
   const log = (s = "") => {
     console.log(s);

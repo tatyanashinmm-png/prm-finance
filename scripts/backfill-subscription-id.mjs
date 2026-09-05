@@ -15,10 +15,13 @@ import { execFileSync } from "node:child_process";
 const DB_NAME = "prm-finance-db";
 const TMP_PREFIX = "scripts/.tmp-backfill-"; // покрыто .gitignore: scripts/.tmp-*.sql
 
+const isRemote = process.argv.includes("--remote");
+const target = isRemote ? "--remote" : "--local";
+
 function queryLocalD1(sql) {
   const out = execFileSync(
     "npx",
-    ["wrangler", "d1", "execute", DB_NAME, "--local", "--command", sql, "--json"],
+    ["wrangler", "d1", "execute", DB_NAME, target, "--command", sql, "--json"],
     { encoding: "utf8", maxBuffer: 1024 * 1024 * 20 },
   );
   return JSON.parse(out)[0].results;
@@ -28,7 +31,7 @@ function execSqlFile(sql, label) {
   const file = `${TMP_PREFIX}${label}.sql`;
   writeFileSync(file, sql, "utf8");
   try {
-    execFileSync("npx", ["wrangler", "d1", "execute", DB_NAME, "--local", "--file", file], {
+    execFileSync("npx", ["wrangler", "d1", "execute", DB_NAME, target, "--file", file], {
       stdio: ["ignore", "ignore", "inherit"],
     });
   } finally {
@@ -43,6 +46,7 @@ const BRIDGE_SUBQUERY = (table) => `(
 )`;
 
 function main() {
+  console.log("TARGET:", target);
   const lines = [];
   const log = (s = "") => {
     console.log(s);
