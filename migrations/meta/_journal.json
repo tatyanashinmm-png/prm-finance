@@ -43,6 +43,13 @@
       "when": 1788555234805,
       "tag": "0005_add_clients_subscriptions",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1788592635811,
+      "tag": "0006_add_subscription_id_to_invoices_tariffs",
+      "breakpoints": true
     }
   ]
 }

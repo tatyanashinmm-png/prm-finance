@@ -26,6 +26,7 @@ export const invoices = sqliteTable(
     periodId: integer("period_id")
       .notNull()
       .references(() => periods.id),
+    subscriptionId: integer("subscription_id").references(() => subscriptions.id),
     invoiceAmount: real("invoice_amount").notNull(),
     paidStatus: text("paid_status"),
     updatedAt: text("updated_at").notNull(),
@@ -47,6 +48,7 @@ export const tariffs = sqliteTable(
     contractId: integer("contract_id")
       .notNull()
       .references(() => contracts.id),
+    subscriptionId: integer("subscription_id").references(() => subscriptions.id),
     tariff: real("tariff").notNull(),
     effectiveFrom: text("effective_from").notNull(),
   },
