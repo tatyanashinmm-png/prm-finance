@@ -33,6 +33,7 @@ export const invoices = sqliteTable(
   },
   (table) => [
     uniqueIndex("invoices_contract_period_unique").on(table.contractId, table.periodId),
+    uniqueIndex("invoices_subscription_period_unique").on(table.subscriptionId, table.periodId),
   ],
 );
 
