@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `invoices_subscription_period_unique` ON `invoices` (`subscription_id`,`period_id`);

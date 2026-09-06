@@ -38,3 +38,6 @@ scripts/.tmp-*.sql
 /import-report.txt
 /diagnostic-report.txt
 /missing-active-report.txt
+
+# снимки метрик (scripts/snapshot-metrics.mjs) — реальные финансовые цифры
+/baseline/
