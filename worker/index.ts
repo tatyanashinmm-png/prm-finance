@@ -380,6 +380,7 @@ app.get("/api/clients", requireAuth, async (c) => {
   }
 
   const responseRows = filtered.map((r) => ({
+    client_id: r.clientId,
     client_name: r.clientName,
     contract_num: r.contractNum,
     status: r.status,

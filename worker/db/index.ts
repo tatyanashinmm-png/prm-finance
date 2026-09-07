@@ -144,6 +144,7 @@ export async function getSubscriptionsList(env: DbEnv, windowPeriods: string[]) 
   const baseRows = await db
     .select({
       subscriptionId: schema.subscriptions.id,
+      clientId: schema.subscriptions.clientId,
       contractNum: schema.subscriptions.contractNum,
       status: schema.subscriptions.status,
       manager: schema.subscriptions.manager,
@@ -237,6 +238,7 @@ export async function getSubscriptionsList(env: DbEnv, windowPeriods: string[]) 
   for (const list of unpaidBySub.values()) list.sort((a, b) => a.periodStart.localeCompare(b.periodStart));
 
   return baseRows.map((row) => ({
+    clientId: row.clientId,
     contractNum: row.contractNum,
     clientName: row.clientName ?? row.contractNum,
     status: row.status,

@@ -3,6 +3,7 @@ import { ContractSearchInput } from '../components/ContractSearchInput'
 import { ManagerMultiFilter } from '../components/ManagerMultiFilter'
 import { StatusBadge } from '../components/StatusBadge'
 import { formatMonthFull, formatRub } from '../lib/format'
+import { ClientCard } from './ClientCard'
 
 type StatusFilter = 'Активен' | 'Блок' | 'все'
 
@@ -13,6 +14,7 @@ interface UnpaidPeriod {
 }
 
 interface ClientRow {
+  client_id: number
   client_name: string
   contract_num: string
   status: string | null
@@ -72,6 +74,12 @@ export function ContractsPage() {
   const [data, setData] = useState<ClientsResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  // Открытая карточка клиента — отдельный подэкран поверх этой же страницы
+  // (тот же приём, что и MrrArpuDrillThrough на Обзоре). Фильтры выше не
+  // сбрасываются при переходе, т.к. это состояние того же компонента, а не
+  // отдельный маршрут — просто временно не рендерим таблицу.
+  const [selectedClientId, setSelectedClientId] = useState<number | null>(null)
+
   // Список менеджеров для фильтра и счётчик "всего активных" — из ОТДЕЛЬНОГО
   // одноразового запроса без фильтров (status=все), чтобы список менеджеров
   // не "сжимался" вместе с текущими фильтрами (иначе выбранный менеджер мог бы
@@ -107,6 +115,10 @@ export function ContractsPage() {
   }, [debouncedSearch, managers, status, unpaidOnly])
 
   const windowLabel = useMemo(() => (data ? formatWindowLabel(data.window) : ''), [data])
+
+  if (selectedClientId !== null) {
+    return <ClientCard clientId={selectedClientId} onBack={() => setSelectedClientId(null)} />
+  }
 
   return (
     <div className="page">
@@ -165,10 +177,7 @@ export function ContractsPage() {
                       <tr
                         key={row.contract_num}
                         className="clients-table__row"
-                        onClick={() => {
-                          // Переход в карточку клиента — шаг 2.4, пока заглушка.
-                          console.debug('client row click (2.4 TODO):', row.contract_num)
-                        }}
+                        onClick={() => setSelectedClientId(row.client_id)}
                       >
                         <td>{row.client_name}</td>
                         <td>

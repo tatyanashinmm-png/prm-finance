@@ -1306,6 +1306,74 @@ input {
   margin: 4px 0;
 }
 
+/* --- карточка клиента (шаг 2.4) --- */
+.client-card__meta {
+  padding: 0 0 20px;
+}
+
+.client-card__subscription {
+  margin-bottom: 20px;
+}
+
+.client-card__sub-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.client-card__sub-header .card__title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 0;
+}
+
+.client-card__legal-entity {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--color-text-secondary);
+}
+
+.client-card__sub-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.client-card__tariff--muted {
+  color: var(--color-text-secondary);
+}
+
+.client-card__summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin-bottom: 12px;
+}
+
+.client-card__unpaid {
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.client-card__unpaid-label {
+  color: var(--color-text-secondary);
+}
+
+.client-card__unpaid-list {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+
 /* --- форма входа --- */
 .login-screen {
   flex: 1;
