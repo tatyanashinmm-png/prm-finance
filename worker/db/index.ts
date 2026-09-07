@@ -1,5 +1,5 @@
 import { drizzle } from "drizzle-orm/d1";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import * as schema from "./schema.ts";
 
 // Единственная точка входа к базе. Остальной код (маршруты API и т.д.)
@@ -111,6 +111,139 @@ export async function getInvoicesByManager(env: DbEnv) {
     invoiceAmount: row.invoiceAmount,
     paidStatus: row.paidStatus,
     manager: row.manager && row.manager.trim() !== "" ? row.manager : NO_MANAGER_LABEL,
+  }));
+}
+
+// Окно "последние 3 месяца" для списка подписок (шаг 2.1) — от СЕРВЕРНОЙ даты
+// (текущий месяц + 2 предыдущих), НЕ от максимума period_start в данных: там
+// есть авансовые периоды за годы вперёд (единичные предоплаты), которые увели
+// бы окно от реального "сейчас". Через месяц окно сдвигается само собой, т.к.
+// считается от now(). UTC — Workers исполняются в UTC, без завязки на локаль.
+export function computeCurrentWindow(now: Date = new Date()): string[] {
+  const periods: string[] = [];
+  for (let i = 2; i >= 0; i--) {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+    const month = String(d.getUTCMonth() + 1).padStart(2, "0");
+    periods.push(`${d.getUTCFullYear()}-${month}-01`);
+  }
+  return periods;
+}
+
+// Список подписок для карточки клиента (шаг 2.1) — одна строка на подписку
+// (контракт), НЕ на клиента. Читает ВСЕ 379 подписок через LEFT JOIN (не
+// INNER) намеренно: тот самый риск с шага 1 (INNER JOIN тихо роняет строки
+// без пары) здесь не должен привести к потере подписок без тарифа/счетов —
+// им положено остаться в списке с tariff=null / unpaidPeriods=[].
+// block_reason — contracts.note через contractNum (натуральный ключ,
+// UNIQUE на обеих таблицах, join 1:1 без размножения строк); НЕ clients.note
+// (тот обнулён у клиентов с 2+ подписками, шаг 1.2b) и НЕ поле на самой
+// subscriptions (там такой колонки нет вообще).
+export async function getSubscriptionsList(env: DbEnv, windowPeriods: string[]) {
+  const db = client(env);
+
+  const baseRows = await db
+    .select({
+      subscriptionId: schema.subscriptions.id,
+      contractNum: schema.subscriptions.contractNum,
+      status: schema.subscriptions.status,
+      manager: schema.subscriptions.manager,
+      clientName: schema.clients.name,
+      blockReason: schema.contracts.note,
+    })
+    .from(schema.subscriptions)
+    .leftJoin(schema.clients, eq(schema.subscriptions.clientId, schema.clients.id))
+    .leftJoin(schema.contracts, eq(schema.contracts.contractNum, schema.subscriptions.contractNum))
+    .all();
+
+  // Тарифы читаем отдельным запросом (не JOIN на baseRows), чтобы не
+  // размножать строки подписок при нескольких записях тарифа — та же
+  // причина, по которой buildTariffIndex/tariffAt в worker/index.ts уже
+  // работают через отдельный индекс, а не через SQL JOIN.
+  const tariffRows = await db
+    .select({
+      subscriptionId: schema.tariffs.subscriptionId,
+      tariff: schema.tariffs.tariff,
+      effectiveFrom: schema.tariffs.effectiveFrom,
+    })
+    .from(schema.tariffs)
+    .all();
+
+  const tariffsBySub = new Map<number, { tariff: number; effectiveFrom: string }[]>();
+  for (const t of tariffRows) {
+    if (t.subscriptionId === null) continue;
+    if (!tariffsBySub.has(t.subscriptionId)) tariffsBySub.set(t.subscriptionId, []);
+    tariffsBySub.get(t.subscriptionId)!.push({ tariff: t.tariff, effectiveFrom: t.effectiveFrom });
+  }
+  for (const list of tariffsBySub.values()) list.sort((a, b) => a.effectiveFrom.localeCompare(b.effectiveFrom));
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  function currentTariff(subscriptionId: number): number | null {
+    const list = tariffsBySub.get(subscriptionId);
+    if (!list) return null;
+    let result: number | null = null;
+    for (const t of list) {
+      if (t.effectiveFrom <= todayStr) result = t.tariff;
+      else break;
+    }
+    return result;
+  }
+
+  // Счета только за окно (не все 3198) — периоды окна сначала резолвим в id,
+  // затем invoices фильтруем по period_id; если периода ещё нет в periods
+  // (не должно случиться для текущего месяца, но на всякий случай) — окно
+  // просто даст меньше периодов, без ошибки.
+  const periodRows =
+    windowPeriods.length === 0
+      ? []
+      : await db
+          .select({ id: schema.periods.id, periodStart: schema.periods.periodStart })
+          .from(schema.periods)
+          .where(inArray(schema.periods.periodStart, windowPeriods))
+          .all();
+  const periodStartById = new Map(periodRows.map((p) => [p.id, p.periodStart]));
+  const periodIds = periodRows.map((p) => p.id);
+
+  const invoiceRows =
+    periodIds.length === 0
+      ? []
+      : await db
+          .select({
+            subscriptionId: schema.invoices.subscriptionId,
+            periodId: schema.invoices.periodId,
+            invoiceAmount: schema.invoices.invoiceAmount,
+            paidStatus: schema.invoices.paidStatus,
+          })
+          .from(schema.invoices)
+          .where(inArray(schema.invoices.periodId, periodIds))
+          .all();
+
+  // Неоплачен = есть invoice в окне с непустой суммой (invoice_amount у нас
+  // NOT NULL по схеме — сам факт строки уже значит "счёт выставлен") И
+  // paid_status <> "Да" (пусто и "Нет" оба считаются неоплатой). ТЕКУЩИЙ
+  // месяц не исключается — это сознательное решение владельца, не баг.
+  const unpaidBySub = new Map<number, { periodStart: string; invoiceAmount: number; paidStatus: string | null }[]>();
+  for (const inv of invoiceRows) {
+    if (inv.subscriptionId === null) continue;
+    if (inv.paidStatus === "Да") continue;
+    const periodStart = periodStartById.get(inv.periodId);
+    if (!periodStart) continue;
+    if (!unpaidBySub.has(inv.subscriptionId)) unpaidBySub.set(inv.subscriptionId, []);
+    unpaidBySub.get(inv.subscriptionId)!.push({
+      periodStart,
+      invoiceAmount: inv.invoiceAmount,
+      paidStatus: inv.paidStatus,
+    });
+  }
+  for (const list of unpaidBySub.values()) list.sort((a, b) => a.periodStart.localeCompare(b.periodStart));
+
+  return baseRows.map((row) => ({
+    contractNum: row.contractNum,
+    clientName: row.clientName ?? row.contractNum,
+    status: row.status,
+    manager: row.manager && row.manager.trim() !== "" ? row.manager : NO_MANAGER_LABEL,
+    tariff: currentTariff(row.subscriptionId),
+    blockReason: row.blockReason && row.blockReason.trim() !== "" ? row.blockReason : null,
+    unpaidPeriods: unpaidBySub.get(row.subscriptionId) ?? [],
   }));
 }
 

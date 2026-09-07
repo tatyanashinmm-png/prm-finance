@@ -7,6 +7,8 @@ import {
   getTariffs,
   getInvoicesByManager,
   NO_MANAGER_LABEL,
+  computeCurrentWindow,
+  getSubscriptionsList,
   getUserByUsername,
   getUserBySessionTokenHash,
   registerFailedLogin,
@@ -329,6 +331,68 @@ app.get("/api/metrics/month-contracts", requireAuth, async (c) => {
     }));
 
   return c.json({ month, contracts: monthContracts });
+});
+
+// Список подписок для карточки клиента (шаг 2.1) — строка = подписка
+// (контракт), не клиент. По умолчанию (без ?status=) отдаём только
+// Активных — владелец явно попросил это дефолтом, а не "всё". Окно
+// "неоплачено" — от серверной даты (computeCurrentWindow), НЕ от максимума
+// period_start в данных (см. комментарий в db/index.ts) — там есть
+// авансовые периоды на годы вперёд, которые увели бы окно от реального "сейчас".
+app.get("/api/clients", requireAuth, async (c) => {
+  const window = computeCurrentWindow();
+  const rows = await getSubscriptionsList(c.env, window);
+
+  const search = (c.req.query("search") ?? "").trim().toLowerCase();
+
+  const managerRaw = c.req.queries("manager") ?? [];
+  const managers = managerRaw
+    .flatMap((m) => m.split(","))
+    .map((m) => m.trim())
+    .filter((m) => m !== "");
+
+  const statusParam = c.req.query("status");
+  const unpaidOnly = c.req.query("unpaid") === "true";
+
+  let filtered = rows;
+
+  if (statusParam === "все") {
+    // без фильтра по статусу
+  } else if (statusParam) {
+    filtered = filtered.filter((r) => r.status === statusParam);
+  } else {
+    filtered = filtered.filter((r) => r.status === "Активен");
+  }
+
+  if (search) {
+    filtered = filtered.filter(
+      (r) => r.clientName.toLowerCase().includes(search) || r.contractNum.toLowerCase().includes(search),
+    );
+  }
+
+  if (managers.length > 0) {
+    filtered = filtered.filter((r) => managers.includes(r.manager));
+  }
+
+  if (unpaidOnly) {
+    filtered = filtered.filter((r) => r.unpaidPeriods.length > 0);
+  }
+
+  const responseRows = filtered.map((r) => ({
+    client_name: r.clientName,
+    contract_num: r.contractNum,
+    status: r.status,
+    manager: r.manager,
+    tariff: r.tariff,
+    block_reason: r.blockReason,
+    unpaid_periods: r.unpaidPeriods.map((p) => ({
+      period_start: p.periodStart,
+      invoice_amount: p.invoiceAmount,
+      paid_status: p.paidStatus,
+    })),
+  }));
+
+  return c.json({ window, total: responseRows.length, rows: responseRows });
 });
 
 // --- страница приложения: без валидной сессии редиректим на /login ---
