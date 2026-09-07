@@ -9,7 +9,7 @@ interface SectionDef {
 // (сейчас там только «Обзор») — секции добавляются просто дописыванием сюда.
 const SECTIONS: SectionDef[] = [
   { id: 'dashboard', label: 'Дашборд' },
-  { id: 'database', label: 'База' },
+  { id: 'database', label: 'Клиенты' },
   { id: 'users', label: 'Пользователи' },
 ]
 
