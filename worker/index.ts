@@ -9,6 +9,7 @@ import {
   NO_MANAGER_LABEL,
   computeCurrentWindow,
   getSubscriptionsList,
+  getClientCard,
   getUserByUsername,
   getUserBySessionTokenHash,
   registerFailedLogin,
@@ -393,6 +394,27 @@ app.get("/api/clients", requireAuth, async (c) => {
   }));
 
   return c.json({ window, total: responseRows.length, rows: responseRows });
+});
+
+// Карточка одного клиента (шаг 2.2) — по client_id, а не по contract_num:
+// клиент со всеми его подписками, по каждой — полная история счетов
+// (не только окно) + сводка. Окно нужно только для summary.unpaid_in_window,
+// то же самое computeCurrentWindow, что и у /api/clients (2.1) — если через
+// месяц окно сдвинется, оба эндпоинта сдвинутся одинаково.
+app.get("/api/clients/:id", requireAuth, async (c) => {
+  const idParam = c.req.param("id");
+  const clientId = Number(idParam);
+  if (!Number.isInteger(clientId)) {
+    return c.json({ error: "id должен быть числом" }, 400);
+  }
+
+  const window = computeCurrentWindow();
+  const card = await getClientCard(c.env, clientId, window);
+  if (!card) {
+    return c.json({ error: "not found" }, 404);
+  }
+
+  return c.json({ window, ...card });
 });
 
 // --- страница приложения: без валидной сессии редиректим на /login ---
