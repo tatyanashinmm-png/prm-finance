@@ -116,6 +116,20 @@ export function ContractsPage() {
 
   const windowLabel = useMemo(() => (data ? formatWindowLabel(data.window) : ''), [data])
 
+  // Дефолт = только Активен, без поиска/менеджеров/неоплаченных — как при
+  // первом открытии экрана. Кнопка сброса показывается, только если реально
+  // есть что сбрасывать (проверяем searchInput, а не debouncedSearch — иначе
+  // кнопка на долю секунды не появлялась бы сразу после ввода первого символа).
+  const hasActiveFilters = searchInput.trim() !== '' || managers.length > 0 || status !== 'Активен' || unpaidOnly
+
+  const resetFilters = () => {
+    setSearchInput('')
+    setDebouncedSearch('')
+    setManagers([])
+    setStatus('Активен')
+    setUnpaidOnly(false)
+  }
+
   if (selectedClientId !== null) {
     return <ClientCard clientId={selectedClientId} onBack={() => setSelectedClientId(null)} />
   }
@@ -143,6 +157,11 @@ export function ContractsPage() {
             <input type="checkbox" checked={unpaidOnly} onChange={(e) => setUnpaidOnly(e.target.checked)} />
             Есть неоплаченные
           </label>
+          {hasActiveFilters && (
+            <button type="button" className="reset-filters-btn" onClick={resetFilters}>
+              Сбросить фильтры
+            </button>
+          )}
         </div>
       </div>
 
