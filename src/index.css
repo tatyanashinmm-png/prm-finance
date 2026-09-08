@@ -29,6 +29,47 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* новая дизайн-система (редизайн, путь Б) — токены из мокапов
+   dashboard-overview.html/clients.html, точные значения из их :root.
+   Старые --color-* (и --radius, --shadow-card) выше НЕ трогаются и продолжают
+   действовать для всех текущих страниц (Дашборд/Клиенты/Пользователи) без
+   изменений — этот блок только ДОБАВЛЯЕТ новые имена для будущих шагов
+   редизайна.
+   ВАЖНО: у мокапа два имени токенов случайно совпадают с уже существующими
+   глобальными — --radius-sm (сейчас 8px) и --shadow-card (другое значение
+   тени). Объявить их здесь же в :root означало бы молча переопределить их
+   ВЕЗДЕ, включая уже свёрстанные страницы (12 и 5 обращений в файле
+   соответственно) — ровно то, чего путь Б должен избегать. Поэтому эти два
+   имени объявлены НЕ в :root, а внутри .sidebar (см. блок ниже, в разделе
+   каркаса) — доступны новому каркасу, не протекают на старые страницы.
+   Остальные 14 новых токенов имён не пересекают старые и объявлены здесь,
+   глобально, сразу для будущих шагов. */
+:root {
+  --navy: #212243;
+  --navy-soft: #4a4b6e;
+  --blue: #4f46e5;
+  --blue-soft: #eae9fd;
+  --teal: #14b8a6;
+  --teal-soft: #e3f7f4;
+  --warning: #f59e0b;
+  --warning-soft: #fef3dd;
+  --green: #16a34a;
+  --green-soft: #e6f6ec;
+  --red: #dc2626;
+  --red-soft: #fceaea;
+  --lavender: #a7aafc;
+  --lavender-soft: #f1f1fe;
+  --bg: #f5f6fb;
+  --card: #ffffff;
+  --line: #eaeaf3;
+  --muted: #8d8da6;
+  --text: #212243;
+  --radius-lg: 24px;
+  --radius-md: 18px;
+  --shadow-hero: 0 16px 40px -12px rgba(33, 34, 67, 0.28);
+  --shadow-pop: 0 20px 50px -14px rgba(33, 34, 67, 0.22);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -42,6 +83,186 @@ body {
   min-height: 100svh;
   display: flex;
   flex-direction: column;
+}
+
+/* ================= каркас редизайна (шаг D.1) =================
+   Только раскладка/навбар — внутренности страниц (.page и всё внутри)
+   не трогаются и продолжают жить на старых --color-* (и --radius, --shadow-card)
+   ровно как раньше. .app оборачивает и .sidebar, и .main — но новые
+   токены для .sidebar объявлены НЕ здесь (не в :root/.app), чтобы не
+   протечь через наследование в .main и всё, что внутри него — см.
+   комментарий у блока :root выше. */
+.app {
+  display: flex;
+  min-height: 100svh;
+}
+
+.sidebar {
+  /* --radius-sm/--shadow-card мокапа объявлены здесь, локально — у этих
+     двух имён уже есть старые глобальные значения (8px и другая тень),
+     используемые текущими страницами; объявление тут же, а не в :root,
+     не даёт им протечь наследованием в .main (см. комментарий у :root). */
+  --radius-sm: 12px;
+  --shadow-card: 0 2px 10px rgba(33, 34, 67, 0.06);
+
+  width: 84px;
+  background: var(--navy);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 0;
+  gap: 8px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100svh;
+}
+
+.sidebar .mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 17px;
+  margin-bottom: 28px;
+}
+
+.nav-item {
+  appearance: none;
+  border: none;
+  font-family: var(--font-sans);
+  width: 56px;
+  height: 52px;
+  border-radius: 14px;
+  background: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: #8d8fbe;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  position: relative;
+}
+
+.nav-item svg {
+  width: 20px;
+  height: 20px;
+}
+
+.nav-item span {
+  font-size: 10px;
+  font-weight: 500;
+  /* Наши подписи (особенно "Пользователи") длиннее коротких лейблов мокапа —
+     разрешаем перенос на 2 строки вместо обрезки, сама подпись остаётся
+     читаемой в 56px-колонке. */
+  white-space: normal;
+  text-align: center;
+  line-height: 1.15;
+}
+
+.nav-item:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.nav-item.active {
+  color: #fff;
+  background: rgba(79, 70, 229, 0.32);
+}
+
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: -24px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 22px;
+  border-radius: 4px;
+  background: var(--teal);
+}
+
+.sidebar .spacer {
+  flex: 1;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Узкая полоса с юзер-чипом/выходом над содержимым страницы — единственное
+   новое, что появляется НАД .page; сама .page и всё внутри неё не тронуты. */
+.app-topbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 32px 0;
+}
+
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-chip .avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--lavender);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--navy);
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.user-chip .who {
+  line-height: 1.2;
+}
+
+.user-chip .who b {
+  display: block;
+  font-size: 13px;
+}
+
+.user-chip .who small {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.user-chip .logout {
+  appearance: none;
+  border: none;
+  background: none;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--blue);
+  cursor: pointer;
+  padding: 0;
+  margin-left: 4px;
+}
+
+.user-chip .logout:hover {
+  text-decoration: underline;
+}
+
+/* Не делаем мобильную адаптацию сайдбара в этом шаге (отдельный хвост) —
+   только страховка, чтобы на узком экране контент не обрезался катастрофически. */
+@media (max-width: 480px) {
+  .app {
+    overflow-x: auto;
+  }
 }
 
 h1,
