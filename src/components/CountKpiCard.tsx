@@ -14,13 +14,15 @@ interface CountKpiCardProps {
   onClick?: () => void
   /** Доп. строка под дельтой — сейчас только у «Отток»: разбивка блок/не оплатили. */
   breakdown?: ReactNode
+  /** Мелкая подпись снизу, по мокапу (напр. "оплативших впервые"). */
+  foot?: string
 }
 
-export function CountKpiCard({ label, value, delta, isCurrent, invert, emptyMessage, onClick, breakdown }: CountKpiCardProps) {
+export function CountKpiCard({ label, value, delta, isCurrent, invert, emptyMessage, onClick, breakdown, foot }: CountKpiCardProps) {
   if (value === null) {
     return (
-      <div className="card kpi-card">
-        <div className="kpi-card__label">{label}</div>
+      <div className="kpi-card">
+        <div className="label">{label}</div>
         <p className="state-msg">{emptyMessage}</p>
       </div>
     )
@@ -34,26 +36,26 @@ export function CountKpiCard({ label, value, delta, isCurrent, invert, emptyMess
 
   const content = (
     <>
-      <div className="kpi-card__label">{label}</div>
-      <div className="kpi-card__value">{value} шт</div>
+      <div className="label">{label}</div>
+      <div className="value">{value} шт</div>
       {delta !== null && (
-        <div className={`kpi-card__delta kpi-card__delta--${trend}`}>
-          {!isCurrent && trend !== 'flat' && <span className="kpi-card__delta-arrow">{trend === 'down' ? '▼' : '▲'}</span>}
-          {delta > 0 ? '+' : ''}
-          {delta} к прошлому месяцу
-        </div>
+        <span className={`delta ${trend}`}>
+          {trend !== 'flat' && (trend === 'down' ? '↓' : '↑')} {delta > 0 ? '+' : ''}
+          {delta}
+        </span>
       )}
       {breakdown}
+      {foot && <div className="foot">{foot}</div>}
     </>
   )
 
   if (onClick) {
     return (
-      <button type="button" className="card kpi-card kpi-card--clickable" onClick={onClick}>
+      <button type="button" className="kpi-card kpi-card--clickable" onClick={onClick}>
         {content}
       </button>
     )
   }
 
-  return <div className="card kpi-card">{content}</div>
+  return <div className="kpi-card">{content}</div>
 }

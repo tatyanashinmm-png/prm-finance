@@ -2496,3 +2496,228 @@ table.hist-table tr.row-unpaid td {
 .pay-icon.no {
   color: var(--red);
 }
+
+/* ================= дашборд, каркас + KPI по мокапу dashboard-overview.html
+   (шаг D.4a). Новые токены из D.1 — путь Б завершается на дашборде.
+   .kpi-row/.kpi-card/.delta уже существовали в старой системе (BEM-дети
+   вроде .kpi-card__label) — здесь те же ИМЕНА ОБОЛОЧЕК переопределены под
+   новую плоскую разметку (.kpi-card .label вместо .kpi-card__label и т.д.),
+   т.к. KpiCard/CountKpiCard/MovementKpiCard (единственные потребители этих
+   классов) переписаны на новую разметку в этом же шаге — старые BEM-правила
+   ниже по файлу становятся мёртвым кодом, не трогаем их (общая уборка —
+   отдельный шаг после всего D.4). Графики/панель движения ниже по странице
+   пока остаются на старых токенах — это D.4b/D.4c, здесь не трогаем. */
+
+.dash-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.dash-topbar .page__title {
+  margin-bottom: 0;
+}
+
+.dash-topbar__filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Реskin существующих PeriodFilter/ManagerFilter (файлы не редактируем —
+   тот же приём, что и с ManagerMultiFilter в шаге D.2) новыми токенами,
+   чтобы вписаться в топбар по мокапу. */
+.dash-topbar__filters .period-filter {
+  background: var(--bg);
+  border-radius: 999px;
+  padding: 4px;
+  border: none;
+  box-shadow: var(--shadow-card);
+}
+
+.dash-topbar__filters .period-filter__btn {
+  font-family: var(--font-sans);
+  color: var(--navy-soft);
+  border-radius: 999px;
+}
+
+.dash-topbar__filters .period-filter__btn--active {
+  background: var(--navy);
+  color: #fff;
+}
+
+.dash-topbar__filters .manager-filter__select {
+  background: var(--card);
+  border: none;
+  border-radius: 999px;
+  box-shadow: var(--shadow-card);
+  font-family: var(--font-sans);
+  color: var(--text);
+}
+
+.kpi-row {
+  display: grid;
+  grid-template-columns: 1.4fr repeat(5, 1fr);
+  gap: 16px;
+  margin-bottom: 18px;
+  align-items: stretch;
+}
+
+.hero-kpi {
+  background: linear-gradient(150deg, var(--navy) 0%, #2c2e5c 100%);
+  border-radius: var(--radius-lg);
+  padding: 26px 26px 20px;
+  color: #fff;
+  box-shadow: var(--shadow-hero);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.hero-kpi .top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.hero-kpi .label {
+  font-size: 13px;
+  color: #b9bae0;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hero-kpi .value {
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin: 10px 0 4px;
+}
+
+.hero-kpi .caption {
+  font-size: 12px;
+  color: #9c9dc6;
+  margin-top: 6px;
+}
+
+.hero-kpi .sparkline {
+  margin-top: 16px;
+  display: block;
+}
+
+.badge-live {
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.16);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.delta.up {
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.delta.down {
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+.delta.flat {
+  background: var(--bg);
+  color: var(--muted);
+}
+
+.hero-kpi .delta.up {
+  background: rgba(22, 163, 74, 0.18);
+  color: #59e28c;
+}
+
+.hero-kpi .delta.down {
+  background: rgba(220, 38, 38, 0.2);
+  color: #fca5a5;
+}
+
+.hero-kpi .delta.flat {
+  background: rgba(255, 255, 255, 0.12);
+  color: #b9bae0;
+}
+
+.kpi-card {
+  background: var(--card);
+  border-radius: var(--radius-md);
+  padding: 18px 18px 16px;
+  box-shadow: var(--shadow-card);
+  cursor: default;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: left;
+  border: none;
+  font-family: var(--font-sans);
+  color: var(--text);
+  width: 100%;
+}
+
+.kpi-card--clickable {
+  cursor: pointer;
+}
+
+.kpi-card--clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 26px -10px rgba(33, 34, 67, 0.18);
+}
+
+.kpi-card .label {
+  font-size: 12.5px;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.kpi-card .value {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.kpi-card .foot {
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+
+@media (max-width: 1100px) {
+  .kpi-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .hero-kpi {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .kpi-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

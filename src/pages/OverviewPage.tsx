@@ -10,13 +10,45 @@ import { MrrChangeStrip } from '../components/MrrChangeStrip'
 import { MrrMovementPanel } from '../components/MrrMovementPanel'
 import { MovementDrillThrough, type DrillKind } from '../components/MovementDrillThrough'
 import { MrrArpuDrillThrough, type MetricDrillKind } from '../components/MrrArpuDrillThrough'
-import { formatMonthFull, formatRub } from '../lib/format'
+import { formatMonthFull, formatMonthShort, formatPercent, formatRub } from '../lib/format'
 import { computeDeltas, getKpiAtPeriod, isCurrentMonth, isFutureMonth, type MonthlyMetric } from '../lib/metrics'
 import { filterMonths, type PeriodSelection } from '../lib/period'
 import { collectManagers, buildManagerColorMap, type ManagerMonthlyMrr } from '../lib/managerMrr'
 import { filterMovementByManager, getMovementDeltasAtPeriod, splitChurnByStatus, type MovementMonth } from '../lib/movement'
 
 const EMPTY_MSG = 'Нет данных за опорный месяц'
+
+/** Значение того же поля за предыдущий (по хронологии в массиве) месяц —
+ * для подписи "к июлю: N ₽" под маленькими KPI-карточками (шаг D.4a).
+ * Ищем в ПОЛНОМ (не обрезанном фильтром периода) ряду, чтобы предыдущий
+ * месяц находился, даже если сам он выпал из выбранного диапазона. */
+function findPrevValue<T extends { period_start: string }>(
+  months: T[],
+  anchorPeriod: string,
+  getValue: (m: T) => number | null,
+): { label: string; value: number | null } | null {
+  const idx = months.findIndex((m) => m.period_start === anchorPeriod)
+  if (idx <= 0) return null
+  const prev = months[idx - 1]
+  return { label: formatMonthShort(prev.period_start), value: getValue(prev) }
+}
+
+/** Точки для .sparkline hero-карточки MRR — реальные последние месяцы,
+ * не демо из мокапа. Нормализуем в 0..height (SVG y растёт вниз, поэтому
+ * большее значение -> меньший y). */
+function buildSparklinePoints(values: number[], width = 220, height = 42): string {
+  if (values.length < 2) return ''
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const range = max - min || 1
+  return values
+    .map((v, i) => {
+      const x = (i / (values.length - 1)) * width
+      const y = height - ((v - min) / range) * height
+      return `${x.toFixed(1)},${y.toFixed(1)}`
+    })
+    .join(' ')
+}
 
 export function OverviewPage() {
   const [months, setMonths] = useState<MonthlyMetric[] | null>(null)
@@ -138,6 +170,28 @@ export function OverviewPage() {
     [movementAtAnchor],
   )
 
+  // Спарклайн hero-карточки MRR — последние 4 закрытых/текущих месяца (та же
+  // пропорция, что в мокапе "Май → Август"), независимо от выбранного
+  // диапазона периода (это отдельный маленький обзорный тренд, не график ниже).
+  const sparklineMonths = useMemo(() => {
+    if (!activeMrrMonths) return []
+    return activeMrrMonths.filter((m) => !isFutureMonth(m.period_start)).slice(-4)
+  }, [activeMrrMonths])
+  const sparklinePoints = useMemo(() => buildSparklinePoints(sparklineMonths.map((m) => m.mrr)), [sparklineMonths])
+  const sparklineCaption =
+    sparklineMonths.length > 0
+      ? `${formatMonthShort(sparklineMonths[0].period_start)} → ${formatMonthShort(sparklineMonths[sparklineMonths.length - 1].period_start)}, ₽`
+      : ''
+
+  const mrrPrev = useMemo(
+    () => (activeMrrMonths && anchorPeriod ? findPrevValue(activeMrrMonths, anchorPeriod, (m) => m.mrr) : null),
+    [activeMrrMonths, anchorPeriod],
+  )
+  const arpuPrev = useMemo(
+    () => (months && anchorPeriod ? findPrevValue(months, anchorPeriod, (m) => m.arpu) : null),
+    [months, anchorPeriod],
+  )
+
   const ready = months !== null && managerMonths !== null && movementMonths !== null
 
   if (ready && drill) {
@@ -170,9 +224,9 @@ export function OverviewPage() {
 
   return (
     <div className="page">
-      <div className="page__header">
+      <div className="dash-topbar">
         <h1 className="page__title">Обзор</h1>
-        <div className="page__filters">
+        <div className="dash-topbar__filters">
           <ManagerFilter managers={managers} value={managerFilter} onChange={setManagerFilter} />
           <PeriodFilter value={selection} onChange={setSelection} />
         </div>
@@ -183,22 +237,53 @@ export function OverviewPage() {
 
       {ready && (
         <>
-          {anchorPeriod && (
-            <div className="anchor-banner">
-              Показатели за: {formatMonthFull(anchorPeriod)}
-              {isAnchorCurrent && <span className="movement-panel__badge">в процессе</span>}
-            </div>
-          )}
-
           <div className="kpi-row">
-            <KpiCard
-              label="MRR"
-              kpi={mrrKpi}
-              formatValue={(v) => formatRub(v)}
-              emptyMessage={EMPTY_MSG}
-              muted={isAnchorCurrent}
+            <div
+              className="hero-kpi"
+              role={mrrKpi ? 'button' : undefined}
+              tabIndex={mrrKpi ? 0 : undefined}
               onClick={mrrKpi ? () => setDrill('mrr') : undefined}
-            />
+              onKeyDown={
+                mrrKpi
+                  ? (e) => {
+                      if (e.key === 'Enter' || e.key === ' ') setDrill('mrr')
+                    }
+                  : undefined
+              }
+            >
+              <div className="top-row">
+                <div className="label">
+                  {anchorPeriod ? `MRR за ${monthOnly(anchorPeriod)}` : 'MRR'}
+                  {isAnchorCurrent && <span className="badge-live">в процессе</span>}
+                </div>
+              </div>
+              {mrrKpi ? (
+                <>
+                  <div>
+                    <div className="value">{formatRub(mrrKpi.value)}</div>
+                    {mrrKpi.deltaPct !== null && (
+                      <span className={`delta ${isAnchorCurrent ? 'flat' : mrrKpi.deltaPct >= 0 ? 'up' : 'down'}`}>
+                        {!isAnchorCurrent && (mrrKpi.deltaPct >= 0 ? '↑' : '↓')} {formatPercent(mrrKpi.deltaPct)}
+                        {mrrPrev && ` к ${mrrPrev.label}`}
+                      </span>
+                    )}
+                  </div>
+                  {sparklinePoints && (
+                    <div>
+                      <svg className="sparkline" width="100%" height="42" viewBox="0 0 220 42" preserveAspectRatio="none">
+                        <polyline points={sparklinePoints} fill="none" stroke="#5EEAD4" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      {sparklineCaption && <div className="caption">{sparklineCaption}</div>}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="state-msg" style={{ color: '#B9BAE0' }}>
+                  {EMPTY_MSG}
+                </p>
+              )}
+            </div>
+
             {isAllManagers ? (
               <KpiCard
                 label="ARPU"
@@ -207,10 +292,11 @@ export function OverviewPage() {
                 emptyMessage={EMPTY_MSG}
                 muted={isAnchorCurrent}
                 onClick={arpuKpi ? () => setDrill('arpu') : undefined}
+                foot={arpuPrev && arpuPrev.value !== null ? `к ${arpuPrev.label}: ${formatRub(arpuPrev.value)}` : undefined}
               />
             ) : (
-              <div className="card kpi-card metric-card--muted">
-                <div className="kpi-card__label">ARPU</div>
+              <div className="kpi-card">
+                <div className="label">ARPU</div>
                 <p className="state-msg">Разбивка по менеджеру — позже</p>
               </div>
             )}
@@ -221,6 +307,7 @@ export function OverviewPage() {
               isCurrent={isAnchorCurrent}
               emptyMessage={EMPTY_MSG}
               onClick={movementAtAnchor ? () => setDrill('new') : undefined}
+              foot="оплативших впервые"
             />
             <CountKpiCard
               label="Отток"
@@ -230,6 +317,7 @@ export function OverviewPage() {
               invert
               emptyMessage={EMPTY_MSG}
               onClick={movementAtAnchor ? () => setDrill('churn') : undefined}
+              foot="перестали платить"
               breakdown={
                 churnStatusSplit && churnStatusSplit.confirmed.length + churnStatusSplit.unpaidActive.length > 0 ? (
                   <div className="churn-breakdown">
@@ -246,6 +334,7 @@ export function OverviewPage() {
               isCurrent={isAnchorCurrent}
               emptyMessage={EMPTY_MSG}
               onClick={movementAtAnchor ? () => setDrill('net_count') : undefined}
+              foot="новые минус отток, шт"
             />
             <MovementKpiCard
               movement={movementAtAnchor}
@@ -290,4 +379,9 @@ export function OverviewPage() {
       )}
     </div>
   )
+}
+
+/** "2026-08-01" -> "август" (для подписи hero-карточки "MRR за август"). */
+function monthOnly(periodStart: string): string {
+  return formatMonthFull(periodStart).split(' ')[0].toLowerCase()
 }
