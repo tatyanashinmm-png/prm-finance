@@ -2171,3 +2171,328 @@ table.clients-table tbody tr:hover {
     align-items: stretch;
   }
 }
+
+/* ================= карточка клиента, новый вид по мокапу clients.html
+   (detail-view, шаг D.3). Новые токены из D.1, старые --color- переменные
+   не трогаются. .tariff-muted переиспользован из D.2 (та же приглушённая
+   стоимость у Блока, что и в списке). */
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  appearance: none;
+  background: none;
+  border: none;
+  color: var(--blue);
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 13.5px;
+  cursor: pointer;
+  padding: 0 0 16px;
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.detail-header h1 {
+  font-size: 24px;
+  margin: 0 0 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.detail-header .meta {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.sub-card {
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 20px 22px;
+  margin-bottom: 16px;
+}
+
+.sub-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.sub-head .left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sub-head .contract {
+  font-weight: 700;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sub-head .legal {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.sub-head .right {
+  text-align: right;
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.sub-head .right b {
+  color: var(--text);
+}
+
+.note-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  padding: 5px 10px;
+  border-radius: 9px;
+  margin: 6px 0 14px;
+  font-weight: 600;
+}
+
+.note-chip.info {
+  background: var(--lavender-soft);
+  color: var(--navy-soft);
+}
+
+.note-chip.flag {
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+.stat-chips {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.stat-chip {
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 10px 14px;
+  min-width: 130px;
+}
+
+.stat-chip .lbl {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: 3px;
+}
+
+.stat-chip .val {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.stat-chip.debt {
+  background: var(--red-soft);
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+
+.stat-chip.debt .val {
+  color: var(--red);
+}
+
+.stat-chip.debt .lbl {
+  color: var(--red);
+}
+
+.stat-chip.debt:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px -8px rgba(220, 38, 38, 0.4);
+}
+
+.history-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.history-head h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--navy-soft);
+}
+
+.expand-link {
+  appearance: none;
+  background: none;
+  border: none;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--blue);
+  cursor: pointer;
+  padding: 0;
+}
+
+.heatmap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
+  align-items: stretch;
+}
+
+.heat-cell {
+  width: 15px;
+  height: 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.heat-cell.paid {
+  background: var(--green);
+  opacity: 0.55;
+}
+
+.heat-cell.paid.zero {
+  background: var(--lavender);
+  opacity: 0.6;
+}
+
+.heat-cell.unpaid {
+  background: var(--red);
+}
+
+.heat-cell:hover {
+  outline: 2px solid var(--navy);
+}
+
+/* Тонкий разделитель "сегодня" в тепловой карте — отдельная договорённость
+   владельца, в мокапе clients.html его нет (там истории без будущих
+   периодов). Просто вертикальная линия между прошлым и оплаченным вперёд. */
+.heat-divider {
+  width: 2px;
+  background: var(--line);
+  border-radius: 1px;
+  flex-shrink: 0;
+  align-self: stretch;
+  min-height: 15px;
+}
+
+/* CSS-only тултип на .heat-cell (в мокапе — JS-тултип с абсолютным
+   позиционированием мышью; здесь проще и надёжнее чистым :hover). */
+.heat-tip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--navy);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1.4;
+  padding: 6px 9px;
+  border-radius: 8px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.1s ease;
+  z-index: 10;
+  box-shadow: var(--shadow-pop);
+}
+
+.heat-cell:hover .heat-tip {
+  opacity: 1;
+}
+
+.heat-legend {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 18px;
+}
+
+.heat-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.heat-legend i {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.full-table {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.25s ease;
+}
+
+.full-table.open {
+  max-height: 4000px;
+}
+
+table.hist-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  font-size: 13px;
+}
+
+table.hist-table th {
+  text-align: left;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 11px;
+  padding: 7px 4px;
+  border-bottom: 1px solid var(--line);
+}
+
+table.hist-table td {
+  padding: 7px 4px;
+  border-bottom: 1px solid var(--line);
+}
+
+table.hist-table tr.row-unpaid td {
+  background: var(--red-soft);
+}
+
+.pay-icon {
+  display: inline-block;
+  width: 16px;
+  text-align: center;
+}
+
+.pay-icon.yes {
+  color: var(--green);
+}
+
+.pay-icon.no {
+  color: var(--red);
+}
