@@ -1859,3 +1859,315 @@ input {
     word-break: break-word;
   }
 }
+
+/* ================= список клиентов, новый вид по мокапу clients.html
+   (шаг D.2). Новые токены из D.1 (navy, blue, teal и т.д.), старые
+   --color- переменные не трогаются. Старые классы из шага 2.3
+   (.drill-table, .clients-table__tariff, .clients-page__summary,
+   .status-toggle, .reset-filters-btn и т.д.) остаются в файле нетронутыми
+   ниже — этой странице они больше не нужны, но других страниц/будущей
+   уборки они не касаются. */
+
+.filterbar {
+  background: var(--card);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  padding: 16px 18px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 220px;
+  position: relative;
+}
+
+.search-input input {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 10px 14px 10px 36px;
+  font-size: 13.5px;
+  font-family: var(--font-sans);
+  color: var(--text);
+}
+
+.search-input input:focus {
+  outline: 2px solid var(--blue-soft);
+  border-color: var(--blue);
+}
+
+.search-input svg {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  width: 15px;
+  height: 15px;
+  pointer-events: none;
+}
+
+.segmented {
+  display: flex;
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 3px;
+  border: 1px solid var(--line);
+}
+
+.segmented button {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 7px 14px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  color: var(--navy-soft);
+  cursor: pointer;
+}
+
+.segmented button.active {
+  background: var(--navy);
+  color: #fff;
+}
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--navy-soft);
+  cursor: pointer;
+  user-select: none;
+}
+
+.check-row input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--blue);
+  cursor: pointer;
+}
+
+.reset-link {
+  appearance: none;
+  border: none;
+  background: none;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--blue);
+  cursor: pointer;
+  padding: 0;
+}
+
+.reset-link:hover {
+  text-decoration: underline;
+}
+
+.results-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12.5px;
+  color: var(--muted);
+  padding: 2px 6px 12px;
+}
+
+.results-line b {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.table-card {
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+/* Внутри .table-card держим свою горизонтальную прокрутку — у мокапа
+   контент всегда помещается и overflow:hidden просто обрезает лишнее, а у
+   нас бывают длинные ФИО и много чипов неоплат, поэтому переносим
+   overflow:hidden на .table-card (для скруглённых углов), а прокрутку — на
+   вложенный .table-scroll, чтобы контент не обрезался. */
+.table-card .table-scroll {
+  overflow-x: auto;
+}
+
+table.clients-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+table.clients-table th {
+  text-align: left;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  font-weight: 700;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+table.clients-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+table.clients-table th.sortable:hover {
+  color: var(--navy-soft);
+}
+
+table.clients-table th .arrow {
+  font-size: 9px;
+  margin-left: 3px;
+  opacity: 0.5;
+}
+
+table.clients-table th.sorted .arrow {
+  opacity: 1;
+  color: var(--blue);
+}
+
+table.clients-table td {
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13.5px;
+  vertical-align: top;
+}
+
+table.clients-table tr:last-child td {
+  border-bottom: none;
+}
+
+table.clients-table tbody tr {
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+table.clients-table tbody tr:hover {
+  background: #fafafe;
+}
+
+.name-cell {
+  font-weight: 600;
+}
+
+.mgr-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mini-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--lavender-soft);
+  color: var(--navy-soft);
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.status-pill {
+  display: inline-block;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.status-pill.active {
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.status-pill.blocked {
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+.tariff-muted {
+  color: var(--muted);
+}
+
+.unpaid-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  max-width: 220px;
+}
+
+.unpaid-chip {
+  background: var(--red-soft);
+  color: var(--red);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+.no-unpaid {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.chev {
+  color: var(--muted);
+  text-align: right;
+}
+
+/* ManagerMultiFilter — компонент из шага 2.3, файл не редактируем; только
+   визуальный фасад новыми токенами поверх его существующих классов, чтобы
+   вписаться в .filterbar. Структура/логика компонента не менялась. */
+.filterbar .manager-filter__label {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.filterbar .manager-multi-filter__trigger {
+  border: 1px solid var(--line);
+  background: var(--bg);
+  border-radius: 12px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  padding: 9px 14px;
+}
+
+.filterbar .manager-multi-filter__trigger:hover {
+  border-color: var(--blue);
+}
+
+.filterbar .manager-multi-filter__popover {
+  border-radius: 12px;
+  box-shadow: var(--shadow-pop);
+  border-color: var(--line);
+}
+
+.filterbar .manager-multi-filter__option {
+  color: var(--text);
+}
+
+@media (max-width: 760px) {
+  .filterbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
