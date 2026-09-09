@@ -203,13 +203,16 @@ export function OverviewPage() {
     [movementAtAnchor],
   )
 
-  // Спарклайн hero-карточки MRR — последние 4 закрытых/текущих месяца (та же
-  // пропорция, что в мокапе "Май → Август"), независимо от выбранного
-  // диапазона периода (это отдельный маленький обзорный тренд, не график ниже).
-  const sparklineMonths = useMemo(() => {
-    if (!activeMrrMonths) return []
-    return activeMrrMonths.filter((m) => !isFutureMonth(m.period_start)).slice(-4)
-  }, [activeMrrMonths])
+  // Шаг D.4e: спарклайн hero-карточки MRR — те же отфильтрованные месяцы,
+  // что идут в график ниже (filtered), а не фиксированные последние 4 —
+  // при выборе короткого/однaмесячного периода спарклайн должен следовать
+  // за ним, а не показывать чужой диапазон. Будущие месяцы по-прежнему
+  // исключаем (в отличие от графика ниже, у спарклайна нет пунктирного
+  // «в процессе» — тренд из плейсхолдера был бы искажён).
+  const sparklineMonths = useMemo(() => filtered.filter((m) => !isFutureMonth(m.period_start)), [filtered])
+  // buildSparklinePoints сама возвращает '' на < 2 точках — то же условие
+  // ниже в JSX (`{sparklinePoints && ...}`) поэтому уже скрывает и линию,
+  // и подпись, когда после фильтра остался один месяц (тренда нет).
   const sparklinePoints = useMemo(() => buildSparklinePoints(sparklineMonths.map((m) => m.mrr)), [sparklineMonths])
   const sparklineCaption =
     sparklineMonths.length > 0

@@ -166,6 +166,7 @@ export function MovementDrillThrough({
               totalCount={displayedChurnContracts.length}
               totalSumLabel={formatRub(-displayedChurnSum)}
               emptyMessage={emptyMessage}
+              cardLayout
             />
           )}
           {(kind === 'net_count' || kind === 'net_mrr') && (

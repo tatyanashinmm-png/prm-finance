@@ -375,12 +375,14 @@ input {
 }
 
 /* --- содержимое страницы --- */
+/* Шаг D.4e: боковой padding уже (32 -> 24px) и снят max-width (1080px) —
+   на широких экранах между сайдбаром и контентом/по правому краю оставалось
+   слишком много пустого поля. Вертикальный padding не трогаем. Действует на
+   ВСЕ страницы (.page общий для дашборда/клиентов/пользователей). */
 .page {
   flex: 1;
-  padding: 28px 32px 48px;
-  max-width: 1080px;
+  padding: 28px 24px 48px;
   width: 100%;
-  margin: 0 auto;
   box-sizing: border-box;
 }
 
@@ -1030,6 +1032,47 @@ input {
 .reason.missing {
   background: var(--red-soft);
   color: var(--red);
+}
+
+/* Шаг D.4e: строка Оттока — карточка вместо строки таблицы (см.
+   MovementContractTable, проп cardLayout), чтобы 6 колонок (в т.ч. свободный
+   текст причины) не выдавливали панель в горизонтальный скролл. */
+.drill-cards {
+  display: flex;
+  flex-direction: column;
+}
+
+.drill-card {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.drill-card:last-child {
+  border-bottom: none;
+}
+
+.drill-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.drill-card__client {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.drill-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--muted);
 }
 
 .movement-list__amount {
@@ -2599,20 +2642,22 @@ table.hist-table tr.row-unpaid td {
   color: var(--text);
 }
 
-/* Шаг D.4d: align-items: start, а не stretch — иначе Grid растягивает
-   компактные карточки под высоту hero (там спарклайн, он выше остальных),
-   а .kpi-card (flex-column, justify-content: space-between) в ответ
-   раздвигает свой контент на всю эту лишнюю высоту — оттуда «плавающий»
-   контент и пустоты. Каждая карточка теперь по высоте своего контента. */
+/* Шаг D.4e: по мокапу — hero занимает 2 ряда слева (grid-row: span 2), 5
+   карточек справа в сетке 3 колонки × 2 ряда (3 сверху + 2 снизу, последняя
+   ячейка пустая). align-items: stretch снова уместен — теперь он тянет
+   карточки только под высоту ИХ СОБСТВЕННОГО ряда (тот же трюк, что убирал
+   «плавание» в D.4d, но там ряд был один общий с hero — отсюда и разница). */
 .kpi-row {
   display: grid;
-  grid-template-columns: 1.4fr repeat(5, 1fr);
+  grid-template-columns: 1.4fr repeat(3, 1fr);
+  grid-auto-rows: 1fr;
   gap: 16px;
   margin-bottom: 18px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .hero-kpi {
+  grid-row: span 2;
   background: linear-gradient(150deg, var(--navy) 0%, #2c2e5c 100%);
   border-radius: var(--radius-lg);
   padding: 26px 26px 20px;
@@ -2754,10 +2799,14 @@ table.hist-table tr.row-unpaid td {
 @media (max-width: 1100px) {
   .kpi-row {
     grid-template-columns: repeat(3, 1fr);
+    grid-auto-rows: auto;
   }
 
+  /* На планшете hero — цельный баннер во всю ширину сверху, не спанит
+     ряды (тот 2-рядный трюк — только для широкого desktop-макета). */
   .hero-kpi {
     grid-column: 1 / -1;
+    grid-row: auto;
   }
 }
 
