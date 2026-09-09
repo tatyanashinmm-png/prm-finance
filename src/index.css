@@ -402,40 +402,6 @@ input {
   margin-bottom: 0;
 }
 
-/* --- drill-through по карточкам движения --- */
-.drill-back {
-  appearance: none;
-  background: none;
-  border: none;
-  padding: 0;
-  margin-bottom: 20px;
-  font-family: var(--font-sans);
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-blue);
-  cursor: pointer;
-}
-
-.drill-back:hover {
-  text-decoration: underline;
-}
-
-.drill-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.drill-header .page__title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 0;
-}
-
 .page__filters {
   display: flex;
   align-items: flex-start;
@@ -846,6 +812,14 @@ input {
 }
 
 /* --- панель «почему MRR изменился» --- */
+/* Шаг D.4c: секция без своего card-фона — карточки теперь у самих колонок
+   (.movement-col ниже), а не у общей обёртки. .card + .card (см. ниже) не
+   сработает по обе стороны этой секции (она сама не .card), поэтому отступ
+   сверху/снизу выставляем явно, тем же значением (20px). */
+.movement-panel-section {
+  margin: 20px 0;
+}
+
 .movement-panel__header {
   display: flex;
   align-items: center;
@@ -930,25 +904,65 @@ input {
   gap: 24px;
 }
 
+/* Шаг D.4c: колонка движения — сама по себе карточка (мокап
+   dashboard-overview.html: .movement-col), не общая обёртка сверху. */
 .movement-col {
   /* Без этого grid-ячейка не сжимается по контенту (min-width: auto по
      умолчанию), и длинные строки списка вылезают за карточку вместо того,
      чтобы обрезаться многоточием. */
   min-width: 0;
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 20px 22px;
 }
 
 .movement-col__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 13px;
   font-weight: 600;
-  margin-bottom: 10px;
+  margin-bottom: 4px;
+}
+
+.movement-col__title::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
 }
 
 .movement-col--new .movement-col__title {
-  color: var(--color-green);
+  color: var(--green);
+}
+
+.movement-col--new .movement-col__title::before {
+  background: var(--green);
 }
 
 .movement-col--churn .movement-col__title {
-  color: var(--color-red);
+  color: var(--red);
+}
+
+.movement-col--churn .movement-col__title::before {
+  background: var(--red);
+}
+
+.movement-col__total {
+  font-size: 22px;
+  font-weight: 800;
+  margin: 2px 0 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.movement-col--new .movement-col__total {
+  color: var(--green);
+}
+
+.movement-col--churn .movement-col__total {
+  color: var(--red);
 }
 
 .movement-list {
@@ -983,19 +997,28 @@ input {
   white-space: nowrap;
 }
 
-/* --- причина оттока в компактном списке (drill-through: Чистый приток/Чистое движение MRR) --- */
-.movement-list__reason {
-  margin-top: 2px;
-  font-size: 12px;
-  color: var(--color-text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* Причина оттока — чипом-«таблеткой» под именем клиента (мокап: .reason.ok/
+   .missing), а не строкой текста в один цвет: реальные причины у нас часто
+   куда длиннее мокапных однострочных демо-примеров, поэтому — своя строка
+   и перенос, но тот же цветовой язык (лавандовый/красный на новых токенах). */
+.reason {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: normal;
 }
 
-.movement-list__reason--missing {
-  color: var(--color-red);
-  font-weight: 600;
+.reason.ok {
+  background: var(--lavender-soft);
+  color: var(--navy-soft);
+}
+
+.reason.missing {
+  background: var(--red-soft);
+  color: var(--red);
 }
 
 .movement-list__amount {
@@ -1005,11 +1028,11 @@ input {
 }
 
 .movement-list__amount--pos {
-  color: var(--color-green);
+  color: var(--green);
 }
 
 .movement-list__amount--neg {
-  color: var(--color-red);
+  color: var(--red);
 }
 
 /* --- режим «По менеджерам» в панели «почему» --- */
@@ -1024,8 +1047,14 @@ input {
   overflow: visible;
 }
 
-.movement-group + .movement-group {
-  margin-top: 14px;
+/* Разделитель между группами — граница сверху (мокап: .mgr-group), вместо
+   отступа между блоками. */
+.movement-group {
+  border-top: 1px solid var(--line);
+}
+
+.movement-group:first-child {
+  border-top: none;
 }
 
 .movement-group__header {
@@ -1041,7 +1070,7 @@ input {
   background: none;
   border: none;
   width: 100%;
-  padding: 4px 0;
+  padding: 12px 2px;
   margin-bottom: 0;
   font-family: var(--font-sans);
   cursor: pointer;
@@ -1049,13 +1078,13 @@ input {
 }
 
 .movement-group__header--toggle:hover .movement-group__manager {
-  color: var(--color-blue);
+  color: var(--blue);
 }
 
 .movement-group__chevron {
   flex: none;
   font-size: 10px;
-  color: var(--color-text-secondary);
+  color: var(--muted);
   transition: transform 0.15s;
 }
 
@@ -1066,8 +1095,8 @@ input {
 .movement-group__manager {
   flex: 1;
   min-width: 0;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 13.5px;
+  font-weight: 700;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1077,7 +1106,7 @@ input {
   flex: none;
   font-size: 12px;
   font-weight: 600;
-  color: var(--color-text-secondary);
+  color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1830,15 +1859,6 @@ input {
   }
 
   .anchor-banner {
-    flex-wrap: wrap;
-  }
-
-  .drill-header {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .drill-header .page__title {
     flex-wrap: wrap;
   }
 
@@ -2728,5 +2748,100 @@ table.hist-table tr.row-unpaid td {
 @media (max-width: 640px) {
   .kpi-row {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ================= drill-детализация — slideover справа (шаг D.4c), вместо
+   отдельного экрана (мокап dashboard-overview.html: .scrim/.drilldown).
+   Наполнение (поиск/группировка/таблицы) не меняется — меняется только рамка. */
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(33, 34, 67, 0.35);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  z-index: 40;
+}
+
+.scrim.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Ширина шире мокапных 460px — у нас в панели таблица + поиск + группировка,
+   460px было бы тесно. */
+.drilldown {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: 600px;
+  max-width: 92vw;
+  background: var(--card);
+  box-shadow: var(--shadow-pop);
+  z-index: 50;
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.drilldown.show {
+  transform: translateX(0);
+}
+
+.drilldown-head {
+  flex: none;
+  padding: 22px 24px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.drilldown-head h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 19px;
+  color: var(--text);
+}
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--blue);
+  font-weight: 700;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  padding: 0 0 10px;
+}
+
+.back-btn:hover {
+  text-decoration: underline;
+}
+
+.drilldown-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 24px 24px;
+}
+
+@media (max-width: 640px) {
+  .drilldown {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .drilldown-head {
+    padding: 16px 16px 12px;
+  }
+
+  .drilldown-body {
+    padding: 10px 16px 20px;
   }
 }

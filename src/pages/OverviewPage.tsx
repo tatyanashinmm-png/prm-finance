@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { PeriodFilter } from '../components/PeriodFilter'
 import { ManagerFilter, ALL_MANAGERS } from '../components/ManagerFilter'
 import { KpiCard } from '../components/KpiCard'
@@ -17,6 +17,11 @@ import { collectManagers, buildManagerColorMap, type ManagerMonthlyMrr } from '.
 import { filterMovementByManager, getMovementDeltasAtPeriod, splitChurnByStatus, type MovementMonth } from '../lib/movement'
 
 const EMPTY_MSG = 'Нет данных за опорный месяц'
+
+// Должно совпадать с длительностью transition у .drilldown в src/index.css —
+// контент панели размонтируется только после того, как она доедет за правый
+// край экрана, иначе при закрытии видно, как таблица исчезает раньше панели.
+const DRILL_CLOSE_ANIMATION_MS = 260
 
 /** Значение того же поля за предыдущий (по хронологии в массиве) месяц —
  * для подписи "к июлю: N ₽" под маленькими KPI-карточками (шаг D.4a).
@@ -60,9 +65,37 @@ export function OverviewPage() {
   // Ручной выбор опорного месяца (клик по графику) — переопределяет
   // автоматический расчёт (последний закрытый месяц в выбранном периоде).
   const [manualAnchorPeriod, setManualAnchorPeriod] = useState<string | null>(null)
-  // Провалились в детализацию по одной из карточек движения — на том же
-  // экране, вместо всего «Обзора», до нажатия «Назад».
+  // Открытая drill-детализация — теперь slideover справа поверх «Обзора»
+  // (шаг D.4c), а не отдельный экран: `drill` держит контент смонтированным,
+  // `drillVisible` — управляет классом .show (анимация выезда/закрытия).
   const [drill, setDrill] = useState<DrillKind | MetricDrillKind | null>(null)
+  const [drillVisible, setDrillVisible] = useState(false)
+  const drillCloseTimer = useRef<number | null>(null)
+
+  function openDrill(kind: DrillKind | MetricDrillKind) {
+    if (drillCloseTimer.current !== null) {
+      window.clearTimeout(drillCloseTimer.current)
+      drillCloseTimer.current = null
+    }
+    setDrill(kind)
+    // Монтируем панель ещё закрытой (translateX(100%) в CSS), затем на
+    // следующем кадре включаем .show — иначе transform-переход не проиграется.
+    requestAnimationFrame(() => setDrillVisible(true))
+  }
+
+  function closeDrill() {
+    setDrillVisible(false)
+    drillCloseTimer.current = window.setTimeout(() => {
+      setDrill(null)
+      drillCloseTimer.current = null
+    }, DRILL_CLOSE_ANIMATION_MS)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (drillCloseTimer.current !== null) window.clearTimeout(drillCloseTimer.current)
+    }
+  }, [])
 
   useEffect(() => {
     Promise.all([
@@ -194,35 +227,8 @@ export function OverviewPage() {
 
   const ready = months !== null && managerMonths !== null && movementMonths !== null
 
-  if (ready && drill) {
-    if (drill === 'mrr' || drill === 'arpu') {
-      return (
-        <MrrArpuDrillThrough
-          kind={drill}
-          month={anchorPeriod!}
-          isCurrent={isAnchorCurrent}
-          showGroupToggle={isAllManagers}
-          managers={managers}
-          colorMap={colorMap}
-          managerFilter={managerFilter}
-          onBack={() => setDrill(null)}
-        />
-      )
-    }
-    return (
-      <MovementDrillThrough
-        kind={drill}
-        movement={movementAtAnchor}
-        isCurrent={isAnchorCurrent}
-        showGroupToggle={isAllManagers}
-        managers={managers}
-        colorMap={colorMap}
-        onBack={() => setDrill(null)}
-      />
-    )
-  }
-
   return (
+    <>
     <div className="page">
       <div className="dash-topbar">
         <h1 className="page__title">Обзор</h1>
@@ -242,11 +248,11 @@ export function OverviewPage() {
               className="hero-kpi"
               role={mrrKpi ? 'button' : undefined}
               tabIndex={mrrKpi ? 0 : undefined}
-              onClick={mrrKpi ? () => setDrill('mrr') : undefined}
+              onClick={mrrKpi ? () => openDrill('mrr') : undefined}
               onKeyDown={
                 mrrKpi
                   ? (e) => {
-                      if (e.key === 'Enter' || e.key === ' ') setDrill('mrr')
+                      if (e.key === 'Enter' || e.key === ' ') openDrill('mrr')
                     }
                   : undefined
               }
@@ -291,7 +297,7 @@ export function OverviewPage() {
                 formatValue={(v) => formatRub(v)}
                 emptyMessage={EMPTY_MSG}
                 muted={isAnchorCurrent}
-                onClick={arpuKpi ? () => setDrill('arpu') : undefined}
+                onClick={arpuKpi ? () => openDrill('arpu') : undefined}
                 foot={arpuPrev && arpuPrev.value !== null ? `к ${arpuPrev.label}: ${formatRub(arpuPrev.value)}` : undefined}
               />
             ) : (
@@ -306,7 +312,7 @@ export function OverviewPage() {
               delta={movementDeltas?.newCountDelta ?? null}
               isCurrent={isAnchorCurrent}
               emptyMessage={EMPTY_MSG}
-              onClick={movementAtAnchor ? () => setDrill('new') : undefined}
+              onClick={movementAtAnchor ? () => openDrill('new') : undefined}
               foot="оплативших впервые"
             />
             <CountKpiCard
@@ -316,7 +322,7 @@ export function OverviewPage() {
               isCurrent={isAnchorCurrent}
               invert
               emptyMessage={EMPTY_MSG}
-              onClick={movementAtAnchor ? () => setDrill('churn') : undefined}
+              onClick={movementAtAnchor ? () => openDrill('churn') : undefined}
               foot="перестали платить"
               breakdown={
                 churnStatusSplit && churnStatusSplit.confirmed.length + churnStatusSplit.unpaidActive.length > 0 ? (
@@ -333,13 +339,13 @@ export function OverviewPage() {
               delta={movementDeltas?.netCountDelta ?? null}
               isCurrent={isAnchorCurrent}
               emptyMessage={EMPTY_MSG}
-              onClick={movementAtAnchor ? () => setDrill('net_count') : undefined}
+              onClick={movementAtAnchor ? () => openDrill('net_count') : undefined}
               foot="новые минус отток, шт"
             />
             <MovementKpiCard
               movement={movementAtAnchor}
               isCurrent={isAnchorCurrent}
-              onClick={movementAtAnchor ? () => setDrill('net_mrr') : undefined}
+              onClick={movementAtAnchor ? () => openDrill('net_mrr') : undefined}
             />
           </div>
 
@@ -378,6 +384,33 @@ export function OverviewPage() {
         </>
       )}
     </div>
+
+    {ready && drill && (drill === 'mrr' || drill === 'arpu') && (
+      <MrrArpuDrillThrough
+        kind={drill}
+        month={anchorPeriod!}
+        isCurrent={isAnchorCurrent}
+        showGroupToggle={isAllManagers}
+        managers={managers}
+        colorMap={colorMap}
+        managerFilter={managerFilter}
+        open={drillVisible}
+        onBack={closeDrill}
+      />
+    )}
+    {ready && drill && drill !== 'mrr' && drill !== 'arpu' && (
+      <MovementDrillThrough
+        kind={drill}
+        movement={movementAtAnchor}
+        isCurrent={isAnchorCurrent}
+        showGroupToggle={isAllManagers}
+        managers={managers}
+        colorMap={colorMap}
+        open={drillVisible}
+        onBack={closeDrill}
+      />
+    )}
+    </>
   )
 }
 

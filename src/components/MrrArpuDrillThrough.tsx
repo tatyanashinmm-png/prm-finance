@@ -7,6 +7,7 @@ import { GroupToggle } from './GroupToggle'
 import { ContractSearchInput } from './ContractSearchInput'
 import { MrrContractTable } from './MrrContractTable'
 import { ArpuContractTable } from './ArpuContractTable'
+import { DrillSlideover } from './DrillSlideover'
 
 export type MetricDrillKind = 'mrr' | 'arpu'
 
@@ -20,6 +21,9 @@ interface MrrArpuDrillThroughProps {
   managers: string[]
   colorMap: Map<string, string>
   managerFilter: string
+  /** Анимация выезда панели (см. DrillSlideover/OverviewPage) — сама детализация
+   * (поиск/группировка/таблица) не зависит от этого флага. */
+  open: boolean
   onBack: () => void
 }
 
@@ -31,6 +35,7 @@ export function MrrArpuDrillThrough({
   managers,
   colorMap,
   managerFilter,
+  open,
   onBack,
 }: MrrArpuDrillThroughProps) {
   const [contracts, setContracts] = useState<MonthContract[] | null>(null)
@@ -65,25 +70,21 @@ export function MrrArpuDrillThrough({
   const emptyMessage = search.trim() ? 'Ничего не найдено' : isCurrent ? IN_PROGRESS_EMPTY_MSG : undefined
 
   const label = kind === 'mrr' ? 'MRR' : 'ARPU'
+  const title = (
+    <>
+      {label} · {formatMonthFull(month)}
+      {isCurrent && <span className="movement-panel__badge">в процессе</span>}
+    </>
+  )
 
   return (
-    <div className="page">
-      <button type="button" className="drill-back" onClick={onBack}>
-        ← Назад к обзору
-      </button>
-
-      <div className="drill-header">
-        <h1 className="page__title">
-          {label} · {formatMonthFull(month)}
-          {isCurrent && <span className="movement-panel__badge">в процессе</span>}
-        </h1>
-        {filteredContracts && filteredContracts.length > 0 && (
-          <div className="movement-panel__header-controls">
-            <ContractSearchInput value={search} onChange={setSearch} />
-            {showGroupToggle && <GroupToggle grouped={grouped} onChange={setGrouped} />}
-          </div>
-        )}
-      </div>
+    <DrillSlideover open={open} title={title} onClose={onBack}>
+      {filteredContracts && filteredContracts.length > 0 && (
+        <div className="movement-panel__header-controls">
+          <ContractSearchInput value={search} onChange={setSearch} />
+          {showGroupToggle && <GroupToggle grouped={grouped} onChange={setGrouped} />}
+        </div>
+      )}
 
       {error && <p className="state-msg state-msg--error">Ошибка загрузки: {error}</p>}
       {!error && !filteredContracts && <p className="state-msg">Загрузка…</p>}
@@ -103,29 +104,27 @@ export function MrrArpuDrillThrough({
               )
             })()}
 
-          <div className="card">
-            {kind === 'mrr' ? (
-              <MrrContractTable
-                contracts={searchedContracts}
-                grouped={showGroupToggle && grouped}
-                managers={managers}
-                colorMap={colorMap}
-                totalCount={searchedContracts.length}
-                totalSum={searchedContracts.reduce((s, c) => s + c.invoice_amount, 0)}
-                emptyMessage={emptyMessage}
-              />
-            ) : (
-              <ArpuContractTable
-                contracts={searchedContracts}
-                grouped={showGroupToggle && grouped}
-                managers={managers}
-                colorMap={colorMap}
-                emptyMessage={emptyMessage}
-              />
-            )}
-          </div>
+          {kind === 'mrr' ? (
+            <MrrContractTable
+              contracts={searchedContracts}
+              grouped={showGroupToggle && grouped}
+              managers={managers}
+              colorMap={colorMap}
+              totalCount={searchedContracts.length}
+              totalSum={searchedContracts.reduce((s, c) => s + c.invoice_amount, 0)}
+              emptyMessage={emptyMessage}
+            />
+          ) : (
+            <ArpuContractTable
+              contracts={searchedContracts}
+              grouped={showGroupToggle && grouped}
+              managers={managers}
+              colorMap={colorMap}
+              emptyMessage={emptyMessage}
+            />
+          )}
         </>
       )}
-    </div>
+    </DrillSlideover>
   )
 }

@@ -4,6 +4,7 @@ import { GroupToggle } from './GroupToggle'
 import { ContractSearchInput } from './ContractSearchInput'
 import { MovementColumns } from './MovementColumns'
 import { MovementContractTable } from './MovementContractTable'
+import { DrillSlideover } from './DrillSlideover'
 import { shiftMonth } from '../lib/period'
 import { matchesContractSearch } from '../lib/search'
 import {
@@ -36,6 +37,9 @@ interface MovementDrillThroughProps {
   showGroupToggle: boolean
   managers: string[]
   colorMap: Map<string, string>
+  /** Анимация выезда панели (см. DrillSlideover/OverviewPage) — сама детализация
+   * (поиск/группировка/фильтры/таблица) не зависит от этого флага. */
+  open: boolean
   onBack: () => void
 }
 
@@ -46,6 +50,7 @@ export function MovementDrillThrough({
   showGroupToggle,
   managers,
   colorMap,
+  open,
   onBack,
 }: MovementDrillThroughProps) {
   const [grouped, setGrouped] = useState(false)
@@ -76,45 +81,42 @@ export function MovementDrillThrough({
     .filter((c) => matchesContractSearch(c, search))
   const displayedChurnSum = sumTariff(displayedChurnContracts)
 
-  return (
-    <div className="page">
-      <button type="button" className="drill-back" onClick={onBack}>
-        ← Назад к обзору
-      </button>
+  const title = movement ? (
+    <>
+      {DRILL_LABELS[kind]} · {formatMonthFull(movement.period_start)}
+      {isCurrent && <span className="movement-panel__badge">в процессе</span>}
+    </>
+  ) : (
+    DRILL_LABELS[kind]
+  )
 
+  return (
+    <DrillSlideover open={open} title={title} onClose={onBack}>
       {!movement ? (
-        <div className="card">
-          <p className="state-msg">Нет данных за опорный месяц</p>
-        </div>
+        <p className="state-msg">Нет данных за опорный месяц</p>
       ) : (
         <>
-          <div className="drill-header">
-            <h1 className="page__title">
-              {DRILL_LABELS[kind]} · {formatMonthFull(movement.period_start)}
-              {isCurrent && <span className="movement-panel__badge">в процессе</span>}
-            </h1>
-            <div className="movement-panel__header-controls">
-              <ContractSearchInput value={search} onChange={setSearch} />
-              {kind === 'churn' && churnContracts.length > 0 && (
-                <>
+          <div className="movement-panel__header-controls">
+            <ContractSearchInput value={search} onChange={setSearch} />
+            {kind === 'churn' && churnContracts.length > 0 && (
+              <>
+                <label className="toggle">
+                  <input type="checkbox" checked={confirmedOnly} onChange={(e) => setConfirmedOnly(e.target.checked)} />
+                  <span>Подтверждённый (блок)</span>
+                </label>
+                <label className="toggle">
+                  <input type="checkbox" checked={unpaidOnly} onChange={(e) => setUnpaidOnly(e.target.checked)} />
+                  <span>Не оплатили (активны)</span>
+                </label>
+                {missingReasonCount > 0 && (
                   <label className="toggle">
-                    <input type="checkbox" checked={confirmedOnly} onChange={(e) => setConfirmedOnly(e.target.checked)} />
-                    <span>Подтверждённый (блок)</span>
+                    <input type="checkbox" checked={noReasonOnly} onChange={(e) => setNoReasonOnly(e.target.checked)} />
+                    <span>Только без причины</span>
                   </label>
-                  <label className="toggle">
-                    <input type="checkbox" checked={unpaidOnly} onChange={(e) => setUnpaidOnly(e.target.checked)} />
-                    <span>Не оплатили (активны)</span>
-                  </label>
-                  {missingReasonCount > 0 && (
-                    <label className="toggle">
-                      <input type="checkbox" checked={noReasonOnly} onChange={(e) => setNoReasonOnly(e.target.checked)} />
-                      <span>Только без причины</span>
-                    </label>
-                  )}
-                </>
-              )}
-              {showGroupToggle && <GroupToggle grouped={grouped} onChange={setGrouped} />}
-            </div>
+                )}
+              </>
+            )}
+            {showGroupToggle && <GroupToggle grouped={grouped} onChange={setGrouped} />}
           </div>
 
           {kind === 'churn' && churnContracts.length > 0 && (
@@ -136,50 +138,48 @@ export function MovementDrillThrough({
             </div>
           )}
 
-          <div className="card">
-            {kind === 'new' && (
-              <MovementContractTable
-                contracts={searchedNewContracts}
-                sign="pos"
-                periodColumnLabel="Первый оплаченный"
-                periodValue={formatMonthShort(movement.period_start)}
-                grouped={effectiveGrouped}
-                managers={managers}
-                colorMap={colorMap}
-                totalCount={searchedNewContracts.length}
-                totalSumLabel={formatSignedRub(newSum)}
-                emptyMessage={emptyMessage}
-              />
-            )}
-            {kind === 'churn' && (
-              <MovementContractTable
-                contracts={displayedChurnContracts}
-                sign="neg"
-                periodColumnLabel="Последний оплаченный"
-                periodValue={formatMonthShort(shiftMonth(movement.period_start, -1))}
-                grouped={effectiveGrouped}
-                managers={managers}
-                colorMap={colorMap}
-                showReason
-                showStatus
-                totalCount={displayedChurnContracts.length}
-                totalSumLabel={formatRub(-displayedChurnSum)}
-                emptyMessage={emptyMessage}
-              />
-            )}
-            {(kind === 'net_count' || kind === 'net_mrr') && (
-              <MovementColumns
-                movement={filterMovementByPredicate(movement, (c) => matchesContractSearch(c, search))}
-                grouped={effectiveGrouped}
-                managers={managers}
-                colorMap={colorMap}
-                showReason
-                emptyMessage={emptyMessage}
-              />
-            )}
-          </div>
+          {kind === 'new' && (
+            <MovementContractTable
+              contracts={searchedNewContracts}
+              sign="pos"
+              periodColumnLabel="Первый оплаченный"
+              periodValue={formatMonthShort(movement.period_start)}
+              grouped={effectiveGrouped}
+              managers={managers}
+              colorMap={colorMap}
+              totalCount={searchedNewContracts.length}
+              totalSumLabel={formatSignedRub(newSum)}
+              emptyMessage={emptyMessage}
+            />
+          )}
+          {kind === 'churn' && (
+            <MovementContractTable
+              contracts={displayedChurnContracts}
+              sign="neg"
+              periodColumnLabel="Последний оплаченный"
+              periodValue={formatMonthShort(shiftMonth(movement.period_start, -1))}
+              grouped={effectiveGrouped}
+              managers={managers}
+              colorMap={colorMap}
+              showReason
+              showStatus
+              totalCount={displayedChurnContracts.length}
+              totalSumLabel={formatRub(-displayedChurnSum)}
+              emptyMessage={emptyMessage}
+            />
+          )}
+          {(kind === 'net_count' || kind === 'net_mrr') && (
+            <MovementColumns
+              movement={filterMovementByPredicate(movement, (c) => matchesContractSearch(c, search))}
+              grouped={effectiveGrouped}
+              managers={managers}
+              colorMap={colorMap}
+              showReason
+              emptyMessage={emptyMessage}
+            />
+          )}
         </>
       )}
-    </div>
+    </DrillSlideover>
   )
 }

@@ -28,7 +28,7 @@ export function MrrMovementPanel({ movement, isCurrent, showGroupToggle, manager
   const direction = movement.net_mrr >= 0 ? 'вырос' : 'упал'
 
   return (
-    <div className="card">
+    <div className="movement-panel-section">
       <div className="movement-panel__header">
         <div className="movement-panel__title">
           {formatMonthFull(movement.period_start)} · MRR {direction} на {formatRub(Math.abs(movement.net_mrr))}
@@ -40,7 +40,9 @@ export function MrrMovementPanel({ movement, isCurrent, showGroupToggle, manager
       </div>
 
       {isCurrent ? (
-        <p className="state-msg">Месяц ещё не закрыт — разбивка по контрактам появится после его завершения.</p>
+        <div className="card">
+          <p className="state-msg">Месяц ещё не закрыт — разбивка по контрактам появится после его завершения.</p>
+        </div>
       ) : (
         <MovementColumns
           movement={movement}
