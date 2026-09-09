@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { PeriodFilter } from '../components/PeriodFilter'
 import { ManagerFilter, ALL_MANAGERS } from '../components/ManagerFilter'
 import { KpiCard } from '../components/KpiCard'
@@ -10,13 +10,50 @@ import { MrrChangeStrip } from '../components/MrrChangeStrip'
 import { MrrMovementPanel } from '../components/MrrMovementPanel'
 import { MovementDrillThrough, type DrillKind } from '../components/MovementDrillThrough'
 import { MrrArpuDrillThrough, type MetricDrillKind } from '../components/MrrArpuDrillThrough'
-import { formatMonthFull, formatRub } from '../lib/format'
+import { formatMonthFull, formatMonthShort, formatPercent, formatRub } from '../lib/format'
 import { computeDeltas, getKpiAtPeriod, isCurrentMonth, isFutureMonth, type MonthlyMetric } from '../lib/metrics'
 import { filterMonths, type PeriodSelection } from '../lib/period'
 import { collectManagers, buildManagerColorMap, type ManagerMonthlyMrr } from '../lib/managerMrr'
 import { filterMovementByManager, getMovementDeltasAtPeriod, splitChurnByStatus, type MovementMonth } from '../lib/movement'
 
 const EMPTY_MSG = 'Нет данных за опорный месяц'
+
+// Должно совпадать с длительностью transition у .drilldown в src/index.css —
+// контент панели размонтируется только после того, как она доедет за правый
+// край экрана, иначе при закрытии видно, как таблица исчезает раньше панели.
+const DRILL_CLOSE_ANIMATION_MS = 260
+
+/** Значение того же поля за предыдущий (по хронологии в массиве) месяц —
+ * для подписи "к июлю: N ₽" под маленькими KPI-карточками (шаг D.4a).
+ * Ищем в ПОЛНОМ (не обрезанном фильтром периода) ряду, чтобы предыдущий
+ * месяц находился, даже если сам он выпал из выбранного диапазона. */
+function findPrevValue<T extends { period_start: string }>(
+  months: T[],
+  anchorPeriod: string,
+  getValue: (m: T) => number | null,
+): { label: string; value: number | null } | null {
+  const idx = months.findIndex((m) => m.period_start === anchorPeriod)
+  if (idx <= 0) return null
+  const prev = months[idx - 1]
+  return { label: formatMonthShort(prev.period_start), value: getValue(prev) }
+}
+
+/** Точки для .sparkline hero-карточки MRR — реальные последние месяцы,
+ * не демо из мокапа. Нормализуем в 0..height (SVG y растёт вниз, поэтому
+ * большее значение -> меньший y). */
+function buildSparklinePoints(values: number[], width = 220, height = 42): string {
+  if (values.length < 2) return ''
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const range = max - min || 1
+  return values
+    .map((v, i) => {
+      const x = (i / (values.length - 1)) * width
+      const y = height - ((v - min) / range) * height
+      return `${x.toFixed(1)},${y.toFixed(1)}`
+    })
+    .join(' ')
+}
 
 export function OverviewPage() {
   const [months, setMonths] = useState<MonthlyMetric[] | null>(null)
@@ -28,9 +65,37 @@ export function OverviewPage() {
   // Ручной выбор опорного месяца (клик по графику) — переопределяет
   // автоматический расчёт (последний закрытый месяц в выбранном периоде).
   const [manualAnchorPeriod, setManualAnchorPeriod] = useState<string | null>(null)
-  // Провалились в детализацию по одной из карточек движения — на том же
-  // экране, вместо всего «Обзора», до нажатия «Назад».
+  // Открытая drill-детализация — теперь slideover справа поверх «Обзора»
+  // (шаг D.4c), а не отдельный экран: `drill` держит контент смонтированным,
+  // `drillVisible` — управляет классом .show (анимация выезда/закрытия).
   const [drill, setDrill] = useState<DrillKind | MetricDrillKind | null>(null)
+  const [drillVisible, setDrillVisible] = useState(false)
+  const drillCloseTimer = useRef<number | null>(null)
+
+  function openDrill(kind: DrillKind | MetricDrillKind) {
+    if (drillCloseTimer.current !== null) {
+      window.clearTimeout(drillCloseTimer.current)
+      drillCloseTimer.current = null
+    }
+    setDrill(kind)
+    // Монтируем панель ещё закрытой (translateX(100%) в CSS), затем на
+    // следующем кадре включаем .show — иначе transform-переход не проиграется.
+    requestAnimationFrame(() => setDrillVisible(true))
+  }
+
+  function closeDrill() {
+    setDrillVisible(false)
+    drillCloseTimer.current = window.setTimeout(() => {
+      setDrill(null)
+      drillCloseTimer.current = null
+    }, DRILL_CLOSE_ANIMATION_MS)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (drillCloseTimer.current !== null) window.clearTimeout(drillCloseTimer.current)
+    }
+  }, [])
 
   useEffect(() => {
     Promise.all([
@@ -138,41 +203,39 @@ export function OverviewPage() {
     [movementAtAnchor],
   )
 
+  // Шаг D.4e: спарклайн hero-карточки MRR — те же отфильтрованные месяцы,
+  // что идут в график ниже (filtered), а не фиксированные последние 4 —
+  // при выборе короткого/однaмесячного периода спарклайн должен следовать
+  // за ним, а не показывать чужой диапазон. Будущие месяцы по-прежнему
+  // исключаем (в отличие от графика ниже, у спарклайна нет пунктирного
+  // «в процессе» — тренд из плейсхолдера был бы искажён).
+  const sparklineMonths = useMemo(() => filtered.filter((m) => !isFutureMonth(m.period_start)), [filtered])
+  // buildSparklinePoints сама возвращает '' на < 2 точках — то же условие
+  // ниже в JSX (`{sparklinePoints && ...}`) поэтому уже скрывает и линию,
+  // и подпись, когда после фильтра остался один месяц (тренда нет).
+  const sparklinePoints = useMemo(() => buildSparklinePoints(sparklineMonths.map((m) => m.mrr)), [sparklineMonths])
+  const sparklineCaption =
+    sparklineMonths.length > 0
+      ? `${formatMonthShort(sparklineMonths[0].period_start)} → ${formatMonthShort(sparklineMonths[sparklineMonths.length - 1].period_start)}, ₽`
+      : ''
+
+  const mrrPrev = useMemo(
+    () => (activeMrrMonths && anchorPeriod ? findPrevValue(activeMrrMonths, anchorPeriod, (m) => m.mrr) : null),
+    [activeMrrMonths, anchorPeriod],
+  )
+  const arpuPrev = useMemo(
+    () => (months && anchorPeriod ? findPrevValue(months, anchorPeriod, (m) => m.arpu) : null),
+    [months, anchorPeriod],
+  )
+
   const ready = months !== null && managerMonths !== null && movementMonths !== null
 
-  if (ready && drill) {
-    if (drill === 'mrr' || drill === 'arpu') {
-      return (
-        <MrrArpuDrillThrough
-          kind={drill}
-          month={anchorPeriod!}
-          isCurrent={isAnchorCurrent}
-          showGroupToggle={isAllManagers}
-          managers={managers}
-          colorMap={colorMap}
-          managerFilter={managerFilter}
-          onBack={() => setDrill(null)}
-        />
-      )
-    }
-    return (
-      <MovementDrillThrough
-        kind={drill}
-        movement={movementAtAnchor}
-        isCurrent={isAnchorCurrent}
-        showGroupToggle={isAllManagers}
-        managers={managers}
-        colorMap={colorMap}
-        onBack={() => setDrill(null)}
-      />
-    )
-  }
-
   return (
+    <>
     <div className="page">
-      <div className="page__header">
+      <div className="dash-topbar">
         <h1 className="page__title">Обзор</h1>
-        <div className="page__filters">
+        <div className="dash-topbar__filters">
           <ManagerFilter managers={managers} value={managerFilter} onChange={setManagerFilter} />
           <PeriodFilter value={selection} onChange={setSelection} />
         </div>
@@ -183,22 +246,53 @@ export function OverviewPage() {
 
       {ready && (
         <>
-          {anchorPeriod && (
-            <div className="anchor-banner">
-              Показатели за: {formatMonthFull(anchorPeriod)}
-              {isAnchorCurrent && <span className="movement-panel__badge">в процессе</span>}
-            </div>
-          )}
-
           <div className="kpi-row">
-            <KpiCard
-              label="MRR"
-              kpi={mrrKpi}
-              formatValue={(v) => formatRub(v)}
-              emptyMessage={EMPTY_MSG}
-              muted={isAnchorCurrent}
-              onClick={mrrKpi ? () => setDrill('mrr') : undefined}
-            />
+            <div
+              className="hero-kpi"
+              role={mrrKpi ? 'button' : undefined}
+              tabIndex={mrrKpi ? 0 : undefined}
+              onClick={mrrKpi ? () => openDrill('mrr') : undefined}
+              onKeyDown={
+                mrrKpi
+                  ? (e) => {
+                      if (e.key === 'Enter' || e.key === ' ') openDrill('mrr')
+                    }
+                  : undefined
+              }
+            >
+              <div className="top-row">
+                <div className="label">
+                  {anchorPeriod ? `MRR за ${monthOnly(anchorPeriod)}` : 'MRR'}
+                  {isAnchorCurrent && <span className="badge-live">в процессе</span>}
+                </div>
+              </div>
+              {mrrKpi ? (
+                <>
+                  <div>
+                    <div className="value">{formatRub(mrrKpi.value)}</div>
+                    {mrrKpi.deltaPct !== null && (
+                      <span className={`delta ${isAnchorCurrent ? 'flat' : mrrKpi.deltaPct >= 0 ? 'up' : 'down'}`}>
+                        {!isAnchorCurrent && (mrrKpi.deltaPct >= 0 ? '↑' : '↓')} {formatPercent(mrrKpi.deltaPct)}
+                        {mrrPrev && ` к ${mrrPrev.label}`}
+                      </span>
+                    )}
+                  </div>
+                  {sparklinePoints && (
+                    <div>
+                      <svg className="sparkline" width="100%" height="42" viewBox="0 0 220 42" preserveAspectRatio="none">
+                        <polyline points={sparklinePoints} fill="none" stroke="#5EEAD4" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      {sparklineCaption && <div className="caption">{sparklineCaption}</div>}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="state-msg" style={{ color: '#B9BAE0' }}>
+                  {EMPTY_MSG}
+                </p>
+              )}
+            </div>
+
             {isAllManagers ? (
               <KpiCard
                 label="ARPU"
@@ -206,11 +300,12 @@ export function OverviewPage() {
                 formatValue={(v) => formatRub(v)}
                 emptyMessage={EMPTY_MSG}
                 muted={isAnchorCurrent}
-                onClick={arpuKpi ? () => setDrill('arpu') : undefined}
+                onClick={arpuKpi ? () => openDrill('arpu') : undefined}
+                foot={arpuPrev && arpuPrev.value !== null ? `к ${arpuPrev.label}: ${formatRub(arpuPrev.value)}` : undefined}
               />
             ) : (
-              <div className="card kpi-card metric-card--muted">
-                <div className="kpi-card__label">ARPU</div>
+              <div className="kpi-card">
+                <div className="label">ARPU</div>
                 <p className="state-msg">Разбивка по менеджеру — позже</p>
               </div>
             )}
@@ -220,7 +315,8 @@ export function OverviewPage() {
               delta={movementDeltas?.newCountDelta ?? null}
               isCurrent={isAnchorCurrent}
               emptyMessage={EMPTY_MSG}
-              onClick={movementAtAnchor ? () => setDrill('new') : undefined}
+              onClick={movementAtAnchor ? () => openDrill('new') : undefined}
+              foot="оплативших впервые"
             />
             <CountKpiCard
               label="Отток"
@@ -229,7 +325,8 @@ export function OverviewPage() {
               isCurrent={isAnchorCurrent}
               invert
               emptyMessage={EMPTY_MSG}
-              onClick={movementAtAnchor ? () => setDrill('churn') : undefined}
+              onClick={movementAtAnchor ? () => openDrill('churn') : undefined}
+              foot="перестали платить"
               breakdown={
                 churnStatusSplit && churnStatusSplit.confirmed.length + churnStatusSplit.unpaidActive.length > 0 ? (
                   <div className="churn-breakdown">
@@ -245,12 +342,13 @@ export function OverviewPage() {
               delta={movementDeltas?.netCountDelta ?? null}
               isCurrent={isAnchorCurrent}
               emptyMessage={EMPTY_MSG}
-              onClick={movementAtAnchor ? () => setDrill('net_count') : undefined}
+              onClick={movementAtAnchor ? () => openDrill('net_count') : undefined}
+              foot="новые минус отток, шт"
             />
             <MovementKpiCard
               movement={movementAtAnchor}
               isCurrent={isAnchorCurrent}
-              onClick={movementAtAnchor ? () => setDrill('net_mrr') : undefined}
+              onClick={movementAtAnchor ? () => openDrill('net_mrr') : undefined}
             />
           </div>
 
@@ -289,5 +387,37 @@ export function OverviewPage() {
         </>
       )}
     </div>
+
+    {ready && drill && (drill === 'mrr' || drill === 'arpu') && (
+      <MrrArpuDrillThrough
+        kind={drill}
+        month={anchorPeriod!}
+        isCurrent={isAnchorCurrent}
+        showGroupToggle={isAllManagers}
+        managers={managers}
+        colorMap={colorMap}
+        managerFilter={managerFilter}
+        open={drillVisible}
+        onBack={closeDrill}
+      />
+    )}
+    {ready && drill && drill !== 'mrr' && drill !== 'arpu' && (
+      <MovementDrillThrough
+        kind={drill}
+        movement={movementAtAnchor}
+        isCurrent={isAnchorCurrent}
+        showGroupToggle={isAllManagers}
+        managers={managers}
+        colorMap={colorMap}
+        open={drillVisible}
+        onBack={closeDrill}
+      />
+    )}
+    </>
   )
+}
+
+/** "2026-08-01" -> "август" (для подписи hero-карточки "MRR за август"). */
+function monthOnly(periodStart: string): string {
+  return formatMonthFull(periodStart).split(' ')[0].toLowerCase()
 }

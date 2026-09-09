@@ -29,6 +29,47 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* новая дизайн-система (редизайн, путь Б) — токены из мокапов
+   dashboard-overview.html/clients.html, точные значения из их :root.
+   Старые --color-* (и --radius, --shadow-card) выше НЕ трогаются и продолжают
+   действовать для всех текущих страниц (Дашборд/Клиенты/Пользователи) без
+   изменений — этот блок только ДОБАВЛЯЕТ новые имена для будущих шагов
+   редизайна.
+   ВАЖНО: у мокапа два имени токенов случайно совпадают с уже существующими
+   глобальными — --radius-sm (сейчас 8px) и --shadow-card (другое значение
+   тени). Объявить их здесь же в :root означало бы молча переопределить их
+   ВЕЗДЕ, включая уже свёрстанные страницы (12 и 5 обращений в файле
+   соответственно) — ровно то, чего путь Б должен избегать. Поэтому эти два
+   имени объявлены НЕ в :root, а внутри .sidebar (см. блок ниже, в разделе
+   каркаса) — доступны новому каркасу, не протекают на старые страницы.
+   Остальные 14 новых токенов имён не пересекают старые и объявлены здесь,
+   глобально, сразу для будущих шагов. */
+:root {
+  --navy: #212243;
+  --navy-soft: #4a4b6e;
+  --blue: #4f46e5;
+  --blue-soft: #eae9fd;
+  --teal: #14b8a6;
+  --teal-soft: #e3f7f4;
+  --warning: #f59e0b;
+  --warning-soft: #fef3dd;
+  --green: #16a34a;
+  --green-soft: #e6f6ec;
+  --red: #dc2626;
+  --red-soft: #fceaea;
+  --lavender: #a7aafc;
+  --lavender-soft: #f1f1fe;
+  --bg: #f5f6fb;
+  --card: #ffffff;
+  --line: #eaeaf3;
+  --muted: #8d8da6;
+  --text: #212243;
+  --radius-lg: 24px;
+  --radius-md: 18px;
+  --shadow-hero: 0 16px 40px -12px rgba(33, 34, 67, 0.28);
+  --shadow-pop: 0 20px 50px -14px rgba(33, 34, 67, 0.22);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -42,6 +83,186 @@ body {
   min-height: 100svh;
   display: flex;
   flex-direction: column;
+}
+
+/* ================= каркас редизайна (шаг D.1) =================
+   Только раскладка/навбар — внутренности страниц (.page и всё внутри)
+   не трогаются и продолжают жить на старых --color-* (и --radius, --shadow-card)
+   ровно как раньше. .app оборачивает и .sidebar, и .main — но новые
+   токены для .sidebar объявлены НЕ здесь (не в :root/.app), чтобы не
+   протечь через наследование в .main и всё, что внутри него — см.
+   комментарий у блока :root выше. */
+.app {
+  display: flex;
+  min-height: 100svh;
+}
+
+.sidebar {
+  /* --radius-sm/--shadow-card мокапа объявлены здесь, локально — у этих
+     двух имён уже есть старые глобальные значения (8px и другая тень),
+     используемые текущими страницами; объявление тут же, а не в :root,
+     не даёт им протечь наследованием в .main (см. комментарий у :root). */
+  --radius-sm: 12px;
+  --shadow-card: 0 2px 10px rgba(33, 34, 67, 0.06);
+
+  width: 84px;
+  background: var(--navy);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 0;
+  gap: 8px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100svh;
+}
+
+.sidebar .mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 17px;
+  margin-bottom: 28px;
+}
+
+.nav-item {
+  appearance: none;
+  border: none;
+  font-family: var(--font-sans);
+  width: 56px;
+  height: 52px;
+  border-radius: 14px;
+  background: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: #8d8fbe;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  position: relative;
+}
+
+.nav-item svg {
+  width: 20px;
+  height: 20px;
+}
+
+.nav-item span {
+  font-size: 10px;
+  font-weight: 500;
+  /* Наши подписи (особенно "Пользователи") длиннее коротких лейблов мокапа —
+     разрешаем перенос на 2 строки вместо обрезки, сама подпись остаётся
+     читаемой в 56px-колонке. */
+  white-space: normal;
+  text-align: center;
+  line-height: 1.15;
+}
+
+.nav-item:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.nav-item.active {
+  color: #fff;
+  background: rgba(79, 70, 229, 0.32);
+}
+
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: -24px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 22px;
+  border-radius: 4px;
+  background: var(--teal);
+}
+
+.sidebar .spacer {
+  flex: 1;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Узкая полоса с юзер-чипом/выходом над содержимым страницы — единственное
+   новое, что появляется НАД .page; сама .page и всё внутри неё не тронуты. */
+.app-topbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 32px 0;
+}
+
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-chip .avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--lavender);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--navy);
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.user-chip .who {
+  line-height: 1.2;
+}
+
+.user-chip .who b {
+  display: block;
+  font-size: 13px;
+}
+
+.user-chip .who small {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.user-chip .logout {
+  appearance: none;
+  border: none;
+  background: none;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--blue);
+  cursor: pointer;
+  padding: 0;
+  margin-left: 4px;
+}
+
+.user-chip .logout:hover {
+  text-decoration: underline;
+}
+
+/* Не делаем мобильную адаптацию сайдбара в этом шаге (отдельный хвост) —
+   только страховка, чтобы на узком экране контент не обрезался катастрофически. */
+@media (max-width: 480px) {
+  .app {
+    overflow-x: auto;
+  }
 }
 
 h1,
@@ -154,12 +375,14 @@ input {
 }
 
 /* --- содержимое страницы --- */
+/* Шаг D.4e: боковой padding уже (32 -> 24px) и снят max-width (1080px) —
+   на широких экранах между сайдбаром и контентом/по правому краю оставалось
+   слишком много пустого поля. Вертикальный padding не трогаем. Действует на
+   ВСЕ страницы (.page общий для дашборда/клиентов/пользователей). */
 .page {
   flex: 1;
-  padding: 28px 32px 48px;
-  max-width: 1080px;
+  padding: 28px 24px 48px;
   width: 100%;
-  margin: 0 auto;
   box-sizing: border-box;
 }
 
@@ -178,40 +401,6 @@ input {
 }
 
 .page__header .page__title {
-  margin-bottom: 0;
-}
-
-/* --- drill-through по карточкам движения --- */
-.drill-back {
-  appearance: none;
-  background: none;
-  border: none;
-  padding: 0;
-  margin-bottom: 20px;
-  font-family: var(--font-sans);
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-blue);
-  cursor: pointer;
-}
-
-.drill-back:hover {
-  text-decoration: underline;
-}
-
-.drill-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.drill-header .page__title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
   margin-bottom: 0;
 }
 
@@ -582,6 +771,13 @@ input {
   cursor: pointer;
 }
 
+/* Шаг D.4b: галочка «Значения на графике» в заголовке карточки графика —
+   новый акцент (indigo), не трогая общий .toggle input (он же в Movement,
+   это D.4c, там остаётся старый акцент). */
+.card__header .toggle input {
+  accent-color: var(--blue);
+}
+
 /* --- приглушённая карточка (метрика, ещё не разбитая по срезу) --- */
 .metric-card--muted {
   opacity: 0.55;
@@ -600,7 +796,7 @@ input {
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: var(--color-text-secondary);
+  color: var(--muted);
 }
 
 .chart-legend__swatch {
@@ -618,6 +814,14 @@ input {
 }
 
 /* --- панель «почему MRR изменился» --- */
+/* Шаг D.4c: секция без своего card-фона — карточки теперь у самих колонок
+   (.movement-col ниже), а не у общей обёртки. .card + .card (см. ниже) не
+   сработает по обе стороны этой секции (она сама не .card), поэтому отступ
+   сверху/снизу выставляем явно, тем же значением (20px). */
+.movement-panel-section {
+  margin: 20px 0;
+}
+
 .movement-panel__header {
   display: flex;
   align-items: center;
@@ -702,25 +906,74 @@ input {
   gap: 24px;
 }
 
+/* Шаг D.4d: только внутри slideover (узкая панель) — колонки друг под
+   другом, каждая на всю ширину, иначе причине оттока некуда переноситься.
+   Дашбордная панель «почему MRR изменился» этот класс не получает и
+   остаётся 2 колонки рядом (см. MovementColumns.tsx, проп stacked). */
+.movement-panel__columns--stacked {
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+/* Шаг D.4c: колонка движения — сама по себе карточка (мокап
+   dashboard-overview.html: .movement-col), не общая обёртка сверху. */
 .movement-col {
   /* Без этого grid-ячейка не сжимается по контенту (min-width: auto по
      умолчанию), и длинные строки списка вылезают за карточку вместо того,
      чтобы обрезаться многоточием. */
   min-width: 0;
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 20px 22px;
 }
 
 .movement-col__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 13px;
   font-weight: 600;
-  margin-bottom: 10px;
+  margin-bottom: 4px;
+}
+
+.movement-col__title::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
 }
 
 .movement-col--new .movement-col__title {
-  color: var(--color-green);
+  color: var(--green);
+}
+
+.movement-col--new .movement-col__title::before {
+  background: var(--green);
 }
 
 .movement-col--churn .movement-col__title {
-  color: var(--color-red);
+  color: var(--red);
+}
+
+.movement-col--churn .movement-col__title::before {
+  background: var(--red);
+}
+
+.movement-col__total {
+  font-size: 22px;
+  font-weight: 800;
+  margin: 2px 0 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.movement-col--new .movement-col__total {
+  color: var(--green);
+}
+
+.movement-col--churn .movement-col__total {
+  color: var(--red);
 }
 
 .movement-list {
@@ -755,19 +1008,71 @@ input {
   white-space: nowrap;
 }
 
-/* --- причина оттока в компактном списке (drill-through: Чистый приток/Чистое движение MRR) --- */
-.movement-list__reason {
-  margin-top: 2px;
-  font-size: 12px;
-  color: var(--color-text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* Причина оттока — чипом-«таблеткой» под именем клиента (мокап: .reason.ok/
+   .missing), а не строкой текста в один цвет: реальные причины у нас часто
+   куда длиннее мокапных однострочных демо-примеров, поэтому — своя строка
+   и перенос, но тот же цветовой язык (лавандовый/красный на новых токенах). */
+.reason {
+  display: inline-block;
+  max-width: 100%;
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
-.movement-list__reason--missing {
-  color: var(--color-red);
+.reason.ok {
+  background: var(--lavender-soft);
+  color: var(--navy-soft);
+}
+
+.reason.missing {
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+/* Шаг D.4e: строка Оттока — карточка вместо строки таблицы (см.
+   MovementContractTable, проп cardLayout), чтобы 6 колонок (в т.ч. свободный
+   текст причины) не выдавливали панель в горизонтальный скролл. */
+.drill-cards {
+  display: flex;
+  flex-direction: column;
+}
+
+.drill-card {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.drill-card:last-child {
+  border-bottom: none;
+}
+
+.drill-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.drill-card__client {
+  min-width: 0;
+  font-size: 13px;
   font-weight: 600;
+  color: var(--text);
+}
+
+.drill-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--muted);
 }
 
 .movement-list__amount {
@@ -777,11 +1082,11 @@ input {
 }
 
 .movement-list__amount--pos {
-  color: var(--color-green);
+  color: var(--green);
 }
 
 .movement-list__amount--neg {
-  color: var(--color-red);
+  color: var(--red);
 }
 
 /* --- режим «По менеджерам» в панели «почему» --- */
@@ -796,8 +1101,14 @@ input {
   overflow: visible;
 }
 
-.movement-group + .movement-group {
-  margin-top: 14px;
+/* Разделитель между группами — граница сверху (мокап: .mgr-group), вместо
+   отступа между блоками. */
+.movement-group {
+  border-top: 1px solid var(--line);
+}
+
+.movement-group:first-child {
+  border-top: none;
 }
 
 .movement-group__header {
@@ -813,7 +1124,7 @@ input {
   background: none;
   border: none;
   width: 100%;
-  padding: 4px 0;
+  padding: 12px 2px;
   margin-bottom: 0;
   font-family: var(--font-sans);
   cursor: pointer;
@@ -821,13 +1132,13 @@ input {
 }
 
 .movement-group__header--toggle:hover .movement-group__manager {
-  color: var(--color-blue);
+  color: var(--blue);
 }
 
 .movement-group__chevron {
   flex: none;
   font-size: 10px;
-  color: var(--color-text-secondary);
+  color: var(--muted);
   transition: transform 0.15s;
 }
 
@@ -838,8 +1149,8 @@ input {
 .movement-group__manager {
   flex: 1;
   min-width: 0;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 13.5px;
+  font-weight: 700;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -849,7 +1160,7 @@ input {
   flex: none;
   font-size: 12px;
   font-weight: 600;
-  color: var(--color-text-secondary);
+  color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1090,8 +1401,10 @@ input {
   overflow-y: hidden;
 }
 
+/* Шаг D.4b: тултип и легенда графиков — путь Б, новые токены (навy-фон,
+   как .chart-tooltip в мокапе dashboard-overview.html). */
 .chart-tooltip {
-  background: var(--color-navy);
+  background: var(--navy);
   color: var(--color-text-inverse);
   border-radius: var(--radius-sm);
   padding: 10px 14px;
@@ -1109,7 +1422,7 @@ input {
 }
 
 .chart-tooltip__value {
-  color: var(--color-lavender);
+  color: var(--lavender);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1603,15 +1916,6 @@ input {
     flex-wrap: wrap;
   }
 
-  .drill-header {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .drill-header .page__title {
-    flex-wrap: wrap;
-  }
-
   .drill-search,
   .drill-search__input {
     width: 100%;
@@ -1636,5 +1940,975 @@ input {
     text-overflow: clip;
     white-space: normal;
     word-break: break-word;
+  }
+}
+
+/* ================= список клиентов, новый вид по мокапу clients.html
+   (шаг D.2). Новые токены из D.1 (navy, blue, teal и т.д.), старые
+   --color- переменные не трогаются. Старые классы из шага 2.3
+   (.drill-table, .clients-table__tariff, .clients-page__summary,
+   .status-toggle, .reset-filters-btn и т.д.) остаются в файле нетронутыми
+   ниже — этой странице они больше не нужны, но других страниц/будущей
+   уборки они не касаются. */
+
+.filterbar {
+  background: var(--card);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  padding: 16px 18px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 220px;
+  position: relative;
+}
+
+.search-input input {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 10px 14px 10px 36px;
+  font-size: 13.5px;
+  font-family: var(--font-sans);
+  color: var(--text);
+}
+
+.search-input input:focus {
+  outline: 2px solid var(--blue-soft);
+  border-color: var(--blue);
+}
+
+.search-input svg {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  width: 15px;
+  height: 15px;
+  pointer-events: none;
+}
+
+.segmented {
+  display: flex;
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 3px;
+  border: 1px solid var(--line);
+}
+
+.segmented button {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 7px 14px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  color: var(--navy-soft);
+  cursor: pointer;
+}
+
+.segmented button.active {
+  background: var(--navy);
+  color: #fff;
+}
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--navy-soft);
+  cursor: pointer;
+  user-select: none;
+}
+
+.check-row input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--blue);
+  cursor: pointer;
+}
+
+.reset-link {
+  appearance: none;
+  border: none;
+  background: none;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--blue);
+  cursor: pointer;
+  padding: 0;
+}
+
+.reset-link:hover {
+  text-decoration: underline;
+}
+
+.results-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12.5px;
+  color: var(--muted);
+  padding: 2px 6px 12px;
+}
+
+.results-line b {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.table-card {
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+/* Внутри .table-card держим свою горизонтальную прокрутку — у мокапа
+   контент всегда помещается и overflow:hidden просто обрезает лишнее, а у
+   нас бывают длинные ФИО и много чипов неоплат, поэтому переносим
+   overflow:hidden на .table-card (для скруглённых углов), а прокрутку — на
+   вложенный .table-scroll, чтобы контент не обрезался. */
+.table-card .table-scroll {
+  overflow-x: auto;
+}
+
+table.clients-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+table.clients-table th {
+  text-align: left;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  font-weight: 700;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+table.clients-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+table.clients-table th.sortable:hover {
+  color: var(--navy-soft);
+}
+
+table.clients-table th .arrow {
+  font-size: 9px;
+  margin-left: 3px;
+  opacity: 0.5;
+}
+
+table.clients-table th.sorted .arrow {
+  opacity: 1;
+  color: var(--blue);
+}
+
+table.clients-table td {
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13.5px;
+  vertical-align: top;
+}
+
+table.clients-table tr:last-child td {
+  border-bottom: none;
+}
+
+table.clients-table tbody tr {
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+table.clients-table tbody tr:hover {
+  background: #fafafe;
+}
+
+.name-cell {
+  font-weight: 600;
+}
+
+.mgr-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mini-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--lavender-soft);
+  color: var(--navy-soft);
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.status-pill {
+  display: inline-block;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.status-pill.active {
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.status-pill.blocked {
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+.tariff-muted {
+  color: var(--muted);
+}
+
+.unpaid-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  max-width: 220px;
+}
+
+.unpaid-chip {
+  background: var(--red-soft);
+  color: var(--red);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+.no-unpaid {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.chev {
+  color: var(--muted);
+  text-align: right;
+}
+
+/* ManagerMultiFilter — компонент из шага 2.3, файл не редактируем; только
+   визуальный фасад новыми токенами поверх его существующих классов, чтобы
+   вписаться в .filterbar. Структура/логика компонента не менялась. */
+.filterbar .manager-filter__label {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.filterbar .manager-multi-filter__trigger {
+  border: 1px solid var(--line);
+  background: var(--bg);
+  border-radius: 12px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  padding: 9px 14px;
+}
+
+.filterbar .manager-multi-filter__trigger:hover {
+  border-color: var(--blue);
+}
+
+.filterbar .manager-multi-filter__popover {
+  border-radius: 12px;
+  box-shadow: var(--shadow-pop);
+  border-color: var(--line);
+}
+
+.filterbar .manager-multi-filter__option {
+  color: var(--text);
+}
+
+@media (max-width: 760px) {
+  .filterbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* ================= карточка клиента, новый вид по мокапу clients.html
+   (detail-view, шаг D.3). Новые токены из D.1, старые --color- переменные
+   не трогаются. .tariff-muted переиспользован из D.2 (та же приглушённая
+   стоимость у Блока, что и в списке). */
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  appearance: none;
+  background: none;
+  border: none;
+  color: var(--blue);
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 13.5px;
+  cursor: pointer;
+  padding: 0 0 16px;
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.detail-header h1 {
+  font-size: 24px;
+  margin: 0 0 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.detail-header .meta {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.sub-card {
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 20px 22px;
+  margin-bottom: 16px;
+}
+
+.sub-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.sub-head .left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sub-head .contract {
+  font-weight: 700;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sub-head .legal {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.sub-head .right {
+  text-align: right;
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.sub-head .right b {
+  color: var(--text);
+}
+
+.note-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  padding: 5px 10px;
+  border-radius: 9px;
+  margin: 6px 0 14px;
+  font-weight: 600;
+}
+
+.note-chip.info {
+  background: var(--lavender-soft);
+  color: var(--navy-soft);
+}
+
+.note-chip.flag {
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+.stat-chips {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.stat-chip {
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 10px 14px;
+  min-width: 130px;
+}
+
+.stat-chip .lbl {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: 3px;
+}
+
+.stat-chip .val {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.stat-chip.debt {
+  background: var(--red-soft);
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+
+.stat-chip.debt .val {
+  color: var(--red);
+}
+
+.stat-chip.debt .lbl {
+  color: var(--red);
+}
+
+.stat-chip.debt:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px -8px rgba(220, 38, 38, 0.4);
+}
+
+.history-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.history-head h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--navy-soft);
+}
+
+.expand-link {
+  appearance: none;
+  background: none;
+  border: none;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--blue);
+  cursor: pointer;
+  padding: 0;
+}
+
+.heatmap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
+  align-items: stretch;
+}
+
+.heat-cell {
+  width: 15px;
+  height: 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.heat-cell.paid {
+  background: var(--green);
+  opacity: 0.55;
+}
+
+.heat-cell.paid.zero {
+  background: var(--lavender);
+  opacity: 0.6;
+}
+
+.heat-cell.unpaid {
+  background: var(--red);
+}
+
+.heat-cell:hover {
+  outline: 2px solid var(--navy);
+}
+
+/* Тонкий разделитель "сегодня" в тепловой карте — отдельная договорённость
+   владельца, в мокапе clients.html его нет (там истории без будущих
+   периодов). Просто вертикальная линия между прошлым и оплаченным вперёд. */
+.heat-divider {
+  width: 2px;
+  background: var(--line);
+  border-radius: 1px;
+  flex-shrink: 0;
+  align-self: stretch;
+  min-height: 15px;
+}
+
+/* CSS-only тултип на .heat-cell (в мокапе — JS-тултип с абсолютным
+   позиционированием мышью; здесь проще и надёжнее чистым :hover). */
+.heat-tip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--navy);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1.4;
+  padding: 6px 9px;
+  border-radius: 8px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.1s ease;
+  z-index: 10;
+  box-shadow: var(--shadow-pop);
+}
+
+.heat-cell:hover .heat-tip {
+  opacity: 1;
+}
+
+.heat-legend {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 18px;
+}
+
+.heat-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.heat-legend i {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.full-table {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.25s ease;
+}
+
+.full-table.open {
+  max-height: 4000px;
+}
+
+table.hist-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  font-size: 13px;
+}
+
+table.hist-table th {
+  text-align: left;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 11px;
+  padding: 7px 4px;
+  border-bottom: 1px solid var(--line);
+}
+
+table.hist-table td {
+  padding: 7px 4px;
+  border-bottom: 1px solid var(--line);
+}
+
+table.hist-table tr.row-unpaid td {
+  background: var(--red-soft);
+}
+
+.pay-icon {
+  display: inline-block;
+  width: 16px;
+  text-align: center;
+}
+
+.pay-icon.yes {
+  color: var(--green);
+}
+
+.pay-icon.no {
+  color: var(--red);
+}
+
+/* ================= дашборд, каркас + KPI по мокапу dashboard-overview.html
+   (шаг D.4a). Новые токены из D.1 — путь Б завершается на дашборде.
+   .kpi-row/.kpi-card/.delta уже существовали в старой системе (BEM-дети
+   вроде .kpi-card__label) — здесь те же ИМЕНА ОБОЛОЧЕК переопределены под
+   новую плоскую разметку (.kpi-card .label вместо .kpi-card__label и т.д.),
+   т.к. KpiCard/CountKpiCard/MovementKpiCard (единственные потребители этих
+   классов) переписаны на новую разметку в этом же шаге — старые BEM-правила
+   ниже по файлу становятся мёртвым кодом, не трогаем их (общая уборка —
+   отдельный шаг после всего D.4). Графики/панель движения ниже по странице
+   пока остаются на старых токенах — это D.4b/D.4c, здесь не трогаем. */
+
+.dash-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.dash-topbar .page__title {
+  margin-bottom: 0;
+}
+
+.dash-topbar__filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Реskin существующих PeriodFilter/ManagerFilter (файлы не редактируем —
+   тот же приём, что и с ManagerMultiFilter в шаге D.2) новыми токенами,
+   чтобы вписаться в топбар по мокапу. */
+.dash-topbar__filters .period-filter {
+  background: var(--bg);
+  border-radius: 999px;
+  padding: 4px;
+  border: none;
+  box-shadow: var(--shadow-card);
+}
+
+.dash-topbar__filters .period-filter__btn {
+  font-family: var(--font-sans);
+  color: var(--navy-soft);
+  border-radius: 999px;
+}
+
+.dash-topbar__filters .period-filter__btn--active {
+  background: var(--navy);
+  color: #fff;
+}
+
+.dash-topbar__filters .manager-filter__select {
+  background: var(--card);
+  border: none;
+  border-radius: 999px;
+  box-shadow: var(--shadow-card);
+  font-family: var(--font-sans);
+  color: var(--text);
+}
+
+/* Шаг D.4e: по мокапу — hero занимает 2 ряда слева (grid-row: span 2), 5
+   карточек справа в сетке 3 колонки × 2 ряда (3 сверху + 2 снизу, последняя
+   ячейка пустая). align-items: stretch снова уместен — теперь он тянет
+   карточки только под высоту ИХ СОБСТВЕННОГО ряда (тот же трюк, что убирал
+   «плавание» в D.4d, но там ряд был один общий с hero — отсюда и разница). */
+.kpi-row {
+  display: grid;
+  grid-template-columns: 1.4fr repeat(3, 1fr);
+  grid-auto-rows: 1fr;
+  gap: 16px;
+  margin-bottom: 18px;
+  align-items: stretch;
+}
+
+.hero-kpi {
+  grid-row: span 2;
+  background: linear-gradient(150deg, var(--navy) 0%, #2c2e5c 100%);
+  border-radius: var(--radius-lg);
+  padding: 26px 26px 20px;
+  color: #fff;
+  box-shadow: var(--shadow-hero);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.hero-kpi .top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.hero-kpi .label {
+  font-size: 13px;
+  color: #b9bae0;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hero-kpi .value {
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin: 10px 0 4px;
+}
+
+.hero-kpi .caption {
+  font-size: 12px;
+  color: #9c9dc6;
+  margin-top: 6px;
+}
+
+.hero-kpi .sparkline {
+  margin-top: 16px;
+  display: block;
+}
+
+.badge-live {
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.16);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.delta.up {
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.delta.down {
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+.delta.flat {
+  background: var(--bg);
+  color: var(--muted);
+}
+
+.hero-kpi .delta.up {
+  background: rgba(22, 163, 74, 0.18);
+  color: #59e28c;
+}
+
+.hero-kpi .delta.down {
+  background: rgba(220, 38, 38, 0.2);
+  color: #fca5a5;
+}
+
+.hero-kpi .delta.flat {
+  background: rgba(255, 255, 255, 0.12);
+  color: #b9bae0;
+}
+
+.kpi-card {
+  background: var(--card);
+  border-radius: var(--radius-md);
+  padding: 18px 18px 16px;
+  box-shadow: var(--shadow-card);
+  cursor: default;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: left;
+  border: none;
+  font-family: var(--font-sans);
+  color: var(--text);
+  width: 100%;
+}
+
+.kpi-card--clickable {
+  cursor: pointer;
+}
+
+.kpi-card--clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 26px -10px rgba(33, 34, 67, 0.18);
+}
+
+.kpi-card .label {
+  font-size: 12.5px;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.kpi-card .value {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.kpi-card .foot {
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+
+@media (max-width: 1100px) {
+  .kpi-row {
+    grid-template-columns: repeat(3, 1fr);
+    grid-auto-rows: auto;
+  }
+
+  /* На планшете hero — цельный баннер во всю ширину сверху, не спанит
+     ряды (тот 2-рядный трюк — только для широкого desktop-макета). */
+  .hero-kpi {
+    grid-column: 1 / -1;
+    grid-row: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .kpi-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ================= drill-детализация — slideover справа (шаг D.4c), вместо
+   отдельного экрана (мокап dashboard-overview.html: .scrim/.drilldown).
+   Наполнение (поиск/группировка/таблицы) не меняется — меняется только рамка. */
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(33, 34, 67, 0.35);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  z-index: 40;
+}
+
+.scrim.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Ширина шире мокапных 460px — у нас в панели таблица + поиск + группировка,
+   460px было бы тесно. Шаг D.4d: 600 -> 660px — движение (Пришли/Отток)
+   стало вертикальной раскладкой (см. .movement-panel__columns--stacked
+   ниже), и на 660px причине оттока хватает места без гор. скролла. */
+.drilldown {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: 660px;
+  max-width: 92vw;
+  background: var(--card);
+  box-shadow: var(--shadow-pop);
+  z-index: 50;
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.drilldown.show {
+  transform: translateX(0);
+}
+
+.drilldown-head {
+  flex: none;
+  padding: 22px 24px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.drilldown-head h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 19px;
+  color: var(--text);
+}
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--blue);
+  font-weight: 700;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  padding: 0 0 10px;
+}
+
+.back-btn:hover {
+  text-decoration: underline;
+}
+
+.drilldown-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 24px 24px;
+}
+
+@media (max-width: 640px) {
+  .drilldown {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .drilldown-head {
+    padding: 16px 16px 12px;
+  }
+
+  .drilldown-body {
+    padding: 10px 16px 20px;
   }
 }

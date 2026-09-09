@@ -10,13 +10,17 @@ interface KpiCardProps {
   muted?: boolean
   /** Клик по карточке — проваливание в детализацию (из каких контрактов складывается метрика). */
   onClick?: () => void
+  /** Мелкая подпись снизу (напр. "к июлю: 18 149 ₽") — по мокапу dashboard-overview.html. */
+  foot?: string
 }
 
-export function KpiCard({ label, kpi, formatValue, emptyMessage, muted, onClick }: KpiCardProps) {
+/** Маленькая KPI-карточка (шаг D.4a, вид по мокапу — .kpi-card/.label/.value/.delta/.foot).
+ * Используется для ARPU; MRR теперь отдельный .hero-kpi прямо в OverviewPage. */
+export function KpiCard({ label, kpi, formatValue, emptyMessage, muted, onClick, foot }: KpiCardProps) {
   if (!kpi) {
     return (
-      <div className="card kpi-card">
-        <div className="kpi-card__label">{label}</div>
+      <div className="kpi-card">
+        <div className="label">{label}</div>
         <p className="state-msg">{emptyMessage}</p>
       </div>
     )
@@ -26,24 +30,24 @@ export function KpiCard({ label, kpi, formatValue, emptyMessage, muted, onClick 
 
   const content = (
     <>
-      <div className="kpi-card__label">{label}</div>
-      <div className="kpi-card__value">{formatValue(kpi.value)}</div>
+      <div className="label">{label}</div>
+      <div className="value">{formatValue(kpi.value)}</div>
       {kpi.deltaPct !== null && (
-        <div className={`kpi-card__delta kpi-card__delta--${trend}`}>
-          {!muted && <span className="kpi-card__delta-arrow">{trend === 'down' ? '▼' : '▲'}</span>}
-          {formatPercent(kpi.deltaPct)} к прошлому месяцу
-        </div>
+        <span className={`delta ${trend}`}>
+          {trend !== 'flat' && (trend === 'down' ? '↓' : '↑')} {formatPercent(kpi.deltaPct)}
+        </span>
       )}
+      {foot && <div className="foot">{foot}</div>}
     </>
   )
 
   if (onClick) {
     return (
-      <button type="button" className="card kpi-card kpi-card--clickable" onClick={onClick}>
+      <button type="button" className="kpi-card kpi-card--clickable" onClick={onClick}>
         {content}
       </button>
     )
   }
 
-  return <div className="card kpi-card">{content}</div>
+  return <div className="kpi-card">{content}</div>
 }

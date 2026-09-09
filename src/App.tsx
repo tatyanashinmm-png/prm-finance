@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { TopNav, type SectionId } from './components/TopNav'
+import { Sidebar, type SectionId } from './components/Sidebar'
 import { OverviewPage } from './pages/OverviewPage'
 import { ContractsPage } from './pages/ContractsPage'
 import { UsersPage } from './pages/UsersPage'
@@ -80,13 +80,32 @@ function Dashboard({ user, onLogout }: { user: AuthedUser; onLogout: () => void 
     onLogout()
   }
 
+  // Инициалы для аватара — из того же username, что и раньше показывался в
+  // TopNav (данных вроде отдельного "ФИО" у нас нет — /api/auth/me отдаёт
+  // только username/role, ничего не придумываем сверху).
+  const initials = user.username.slice(0, 2).toUpperCase()
+
   return (
-    <>
-      <TopNav active={section} onChange={setSection} username={user.username} role={user.role} onLogout={logout} />
-      {section === 'dashboard' && <OverviewPage />}
-      {section === 'database' && <ContractsPage />}
-      {section === 'users' && <UsersPage />}
-    </>
+    <div className="app">
+      <Sidebar active={section} onChange={setSection} />
+      <div className="main">
+        <div className="app-topbar">
+          <div className="user-chip">
+            <div className="avatar">{initials}</div>
+            <div className="who">
+              <b>{user.username}</b>
+              <small>{user.role}</small>
+            </div>
+            <button type="button" className="logout" onClick={logout}>
+              Выйти
+            </button>
+          </div>
+        </div>
+        {section === 'dashboard' && <OverviewPage />}
+        {section === 'database' && <ContractsPage />}
+        {section === 'users' && <UsersPage />}
+      </div>
+    </div>
   )
 }
 

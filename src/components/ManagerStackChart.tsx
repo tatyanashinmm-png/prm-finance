@@ -99,12 +99,12 @@ export function ManagerStackChart({ months, managers, colorMap, onPointClick, an
       <div className="chart-scroll">
         <ResponsiveContainer width="100%" height={360} minWidth={Math.max(360, data.length * 44)}>
           <BarChart data={data} margin={{ top: 24, right: 16, left: 0, bottom: 32 }}>
-            <CartesianGrid stroke="var(--color-border)" vertical={false} />
+            <CartesianGrid stroke="var(--line)" vertical={false} />
             <XAxis
               dataKey="period_start"
               tickFormatter={formatMonthShort}
-              tick={{ fontSize: 11, fill: 'var(--color-text-secondary)' }}
-              axisLine={{ stroke: 'var(--color-border)' }}
+              tick={{ fontSize: 11, fill: 'var(--muted)' }}
+              axisLine={{ stroke: 'var(--line)' }}
               tickLine={false}
               interval={0}
               angle={-40}
@@ -113,20 +113,20 @@ export function ManagerStackChart({ months, managers, colorMap, onPointClick, an
             />
             <YAxis
               tickFormatter={(v: number) => formatCompactRub(v)}
-              tick={{ fontSize: 12, fill: 'var(--color-text-secondary)' }}
+              tick={{ fontSize: 12, fill: 'var(--muted)' }}
               axisLine={false}
               tickLine={false}
               width={72}
             />
-            <Tooltip content={StackTooltip} cursor={{ fill: 'var(--color-bg)' }} />
-            {hasAnchor && <ReferenceLine x={anchorPeriod ?? undefined} stroke="var(--color-orange)" strokeDasharray="3 3" />}
+            <Tooltip content={StackTooltip} cursor={{ fill: 'var(--bg)' }} />
+            {hasAnchor && <ReferenceLine x={anchorPeriod ?? undefined} stroke="var(--teal)" strokeDasharray="3 3" />}
             {managers.map((manager) => (
               <Bar key={manager} dataKey={manager} stackId="managers" fill={colorMap.get(manager)} isAnimationActive={false}>
                 {data.map((d, i) => (
                   <Cell
                     key={i}
                     fillOpacity={d.isCurrent ? 0.45 : 1}
-                    stroke={d.period_start === anchorPeriod ? 'var(--color-orange)' : undefined}
+                    stroke={d.period_start === anchorPeriod ? 'var(--teal)' : undefined}
                     strokeWidth={d.period_start === anchorPeriod ? 2 : undefined}
                     cursor={onPointClick ? 'pointer' : undefined}
                     onClick={() => onPointClick?.(d.period_start)}

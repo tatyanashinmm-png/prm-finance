@@ -26,8 +26,12 @@ export function collectManagers(months: ManagerMonthlyMrr[]): string[] {
   return set.has(NO_MANAGER_LABEL) ? [...named, NO_MANAGER_LABEL] : named
 }
 
-const PALETTE = ['#0C39FF', '#A7AAFC', '#FF9900', '#212243', '#16A34A', '#FF5D5D']
-const NO_MANAGER_COLOR = '#9AA0AE'
+// Путь Б: палитра менеджеров — только новые токены (var(--blue)/--teal/--lavender/
+// --navy-soft/--warning/--green), ни одного значения из старой --color-* палитры.
+// Первые три цвета и их порядок — как в мокапе dashboard-overview.html (там же
+// подтверждено, что реальный алфавитный порядок менеджеров совпадает с мокапом).
+const PALETTE = ['var(--blue)', 'var(--lavender)', 'var(--teal)', 'var(--navy-soft)', 'var(--warning)', 'var(--green)']
+const NO_MANAGER_COLOR = 'var(--muted)'
 
 /** Стабильный цвет на менеджера: по порядку в managers (не зависит от периода/фильтра). */
 export function buildManagerColorMap(managers: string[]): Map<string, string> {

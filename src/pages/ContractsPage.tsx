@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ContractSearchInput } from '../components/ContractSearchInput'
 import { ManagerMultiFilter } from '../components/ManagerMultiFilter'
-import { StatusBadge } from '../components/StatusBadge'
 import { formatMonthFull, formatRub } from '../lib/format'
 import { ClientCard } from './ClientCard'
 
 type StatusFilter = 'Активен' | 'Блок' | 'все'
+type SortKey = 'name' | 'status' | 'manager' | 'tariff'
+type SortDir = 1 | -1
 
 interface UnpaidPeriod {
   period_start: string
@@ -49,9 +49,21 @@ function formatWindowLabel(window: string[]): string {
   return `${firstMonth} ${firstYear} – ${lastMonth} ${lastYear}`
 }
 
-function formatUnpaidPeriods(periods: UnpaidPeriod[]): string {
-  if (periods.length === 0) return '—'
-  return periods.map((p) => `${monthNameLower(p.period_start)} ${new Intl.NumberFormat('ru-RU').format(p.invoice_amount)}`).join(', ')
+/** Чип неоплаченного периода — "июл · 3 910 ₽" (формат из мокапа clients.html). */
+function formatUnpaidChip(p: UnpaidPeriod): string {
+  const month3 = monthNameLower(p.period_start).slice(0, 3)
+  const amount = new Intl.NumberFormat('ru-RU').format(p.invoice_amount)
+  return `${month3} · ${amount} ₽`
+}
+
+/** "Александр Солодин" -> "АС" (инициалы для мини-аватарки, как в мокапе). */
+function initials(name: string): string {
+  return name
+    .split(' ')
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase()
 }
 
 function buildQuery(params: { search: string; managers: string[]; status: StatusFilter; unpaidOnly: boolean }): string {
@@ -64,12 +76,37 @@ function buildQuery(params: { search: string; managers: string[]; status: Status
   return s ? `/api/clients?${s}` : '/api/clients'
 }
 
+interface SortableThProps {
+  label: string
+  sortKeyName: SortKey
+  activeKey: SortKey | null
+  dir: SortDir
+  onSort: (key: SortKey) => void
+}
+
+/** Заголовок сортируемой колонки — вид из мокапа (th.sortable + .arrow),
+ * поведение как в мокапе: первый клик — по убыванию, повторный — переключает. */
+function SortableTh({ label, sortKeyName, activeKey, dir, onSort }: SortableThProps) {
+  const isActive = activeKey === sortKeyName
+  return (
+    <th className={`sortable${isActive ? ' sorted' : ''}`} onClick={() => onSort(sortKeyName)}>
+      {label} <span className="arrow">{isActive ? (dir === 1 ? '▴' : '▾') : '▾'}</span>
+    </th>
+  )
+}
+
 export function ContractsPage() {
   const [searchInput, setSearchInput] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [managers, setManagers] = useState<string[]>([])
   const [status, setStatus] = useState<StatusFilter>('Активен')
   const [unpaidOnly, setUnpaidOnly] = useState(false)
+
+  // Сортировка — клиентская, поверх уже загруженного и отфильтрованного
+  // сервером ответа; сам /api/clients не трогаем и не передаём туда параметр
+  // сортировки.
+  const [sortKey, setSortKey] = useState<SortKey | null>(null)
+  const [sortDir, setSortDir] = useState<SortDir>(-1)
 
   const [data, setData] = useState<ClientsResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -116,11 +153,45 @@ export function ContractsPage() {
 
   const windowLabel = useMemo(() => (data ? formatWindowLabel(data.window) : ''), [data])
 
-  // Дефолт = только Активен, без поиска/менеджеров/неоплаченных — как при
-  // первом открытии экрана. Кнопка сброса показывается, только если реально
-  // есть что сбрасывать (проверяем searchInput, а не debouncedSearch — иначе
-  // кнопка на долю секунды не появлялась бы сразу после ввода первого символа).
-  const hasActiveFilters = searchInput.trim() !== '' || managers.length > 0 || status !== 'Активен' || unpaidOnly
+  const sortedRows = useMemo(() => {
+    if (!data) return []
+    if (!sortKey) return data.rows
+    const rows = [...data.rows]
+    rows.sort((a, b) => {
+      switch (sortKey) {
+        case 'name':
+          return a.client_name.localeCompare(b.client_name, 'ru') * sortDir
+        case 'status':
+          return (a.status ?? '').localeCompare(b.status ?? '', 'ru') * sortDir
+        case 'manager':
+          return a.manager.localeCompare(b.manager, 'ru') * sortDir
+        case 'tariff': {
+          // Подписки без тарифа — всегда в конце, независимо от направления
+          // сортировки (иначе null/не-число скакало бы то в начало, то в
+          // конец при переключении стрелки, что нечитаемо).
+          if (a.tariff === null && b.tariff === null) return 0
+          if (a.tariff === null) return 1
+          if (b.tariff === null) return -1
+          return (a.tariff - b.tariff) * sortDir
+        }
+      }
+    })
+    return rows
+  }, [data, sortKey, sortDir])
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir((d) => (d === 1 ? -1 : 1))
+    else {
+      setSortKey(key)
+      setSortDir(-1)
+    }
+  }
+
+  // Дефолт = только Активен, без поиска/менеджеров/неоплаченных/сортировки —
+  // как при первом открытии экрана. Кнопка сброса показывается, только если
+  // реально есть что сбрасывать (проверяем searchInput, а не debouncedSearch —
+  // иначе кнопка на долю секунды не появлялась бы сразу после ввода первого символа).
+  const hasActiveFilters = searchInput.trim() !== '' || managers.length > 0 || status !== 'Активен' || unpaidOnly || sortKey !== null
 
   const resetFilters = () => {
     setSearchInput('')
@@ -128,6 +199,8 @@ export function ContractsPage() {
     setManagers([])
     setStatus('Активен')
     setUnpaidOnly(false)
+    setSortKey(null)
+    setSortDir(-1)
   }
 
   if (selectedClientId !== null) {
@@ -136,90 +209,116 @@ export function ContractsPage() {
 
   return (
     <div className="page">
-      <div className="page__header">
-        <h1 className="page__title">Клиенты</h1>
-        <div className="page__filters">
-          <ContractSearchInput value={searchInput} onChange={setSearchInput} />
-          <ManagerMultiFilter managers={managerOptions} value={managers} onChange={setManagers} />
-          <div className="status-toggle">
-            {(['Активен', 'Блок', 'все'] as StatusFilter[]).map((s) => (
-              <button
-                key={s}
-                type="button"
-                className={`status-toggle__btn${status === s ? ' status-toggle__btn--active' : ''}`}
-                onClick={() => setStatus(s)}
-              >
-                {s === 'все' ? 'Все' : s}
-              </button>
-            ))}
-          </div>
-          <label className="checkbox-filter">
-            <input type="checkbox" checked={unpaidOnly} onChange={(e) => setUnpaidOnly(e.target.checked)} />
-            Есть неоплаченные
-          </label>
-          {hasActiveFilters && (
-            <button type="button" className="reset-filters-btn" onClick={resetFilters}>
-              Сбросить фильтры
-            </button>
-          )}
+      <h1 className="page__title">Клиенты</h1>
+
+      <div className="filterbar">
+        <div className="search-input">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+            <circle cx="11" cy="11" r="7" />
+            <path d="M21 21l-4.3-4.3" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Поиск по клиенту или номеру контракта"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+          />
         </div>
+        <ManagerMultiFilter managers={managerOptions} value={managers} onChange={setManagers} />
+        <div className="segmented">
+          {(['Активен', 'Блок', 'все'] as StatusFilter[]).map((s) => (
+            <button key={s} type="button" className={status === s ? 'active' : ''} onClick={() => setStatus(s)}>
+              {s === 'все' ? 'Все' : s}
+            </button>
+          ))}
+        </div>
+        <label className="check-row">
+          <input type="checkbox" checked={unpaidOnly} onChange={(e) => setUnpaidOnly(e.target.checked)} />
+          Есть неоплаченные
+        </label>
+        {hasActiveFilters && (
+          <button type="button" className="reset-link" onClick={resetFilters}>
+            Сбросить фильтры
+          </button>
+        )}
       </div>
 
-      <div className="card">
-        {error && <p className="state-msg state-msg--error">Ошибка: {error}</p>}
-        {!error && data === null && <p className="state-msg">Загрузка…</p>}
-        {!error && data !== null && (
-          <>
-            <p className="state-msg clients-page__summary">
-              Показано: {data.total}
-              {activeTotal !== null && <> · всего активных: {activeTotal}</>}
+      {error && <p className="state-msg state-msg--error">Ошибка: {error}</p>}
+      {!error && data === null && <p className="state-msg">Загрузка…</p>}
+      {!error && data !== null && (
+        <>
+          <div className="results-line">
+            <div>
+              Показано <b>{data.total}</b>
+              {activeTotal !== null && (
+                <>
+                  {' '}
+                  · всего активных: <b>{activeTotal}</b>
+                </>
+              )}
               {windowLabel && <> · неоплаты за: {windowLabel}</>}
-            </p>
-            {data.rows.length === 0 ? (
-              <p className="state-msg">Нет клиентов по заданным фильтрам</p>
-            ) : (
+            </div>
+          </div>
+
+          {data.rows.length === 0 ? (
+            <p className="state-msg">Нет клиентов по заданным фильтрам</p>
+          ) : (
+            <div className="table-card">
               <div className="table-scroll">
-                <table className="drill-table clients-table">
+                <table className="clients-table">
                   <thead>
                     <tr>
-                      <th>Наименование</th>
+                      <SortableTh label="Наименование" sortKeyName="name" activeKey={sortKey} dir={sortDir} onSort={handleSort} />
                       <th>Номер контракта</th>
-                      <th>Статус</th>
-                      <th>Менеджер</th>
-                      <th>Стоимость</th>
+                      <SortableTh label="Статус" sortKeyName="status" activeKey={sortKey} dir={sortDir} onSort={handleSort} />
+                      <SortableTh label="Менеджер" sortKeyName="manager" activeKey={sortKey} dir={sortDir} onSort={handleSort} />
+                      <SortableTh label="Стоимость" sortKeyName="tariff" activeKey={sortKey} dir={sortDir} onSort={handleSort} />
                       <th>Неоплаченные периоды</th>
-                      <th>Причина блока / Важно!</th>
+                      <th></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {data.rows.map((row) => (
-                      <tr
-                        key={row.contract_num}
-                        className="clients-table__row"
-                        onClick={() => setSelectedClientId(row.client_id)}
-                      >
-                        <td>{row.client_name}</td>
+                    {sortedRows.map((row) => (
+                      <tr key={row.contract_num} onClick={() => setSelectedClientId(row.client_id)}>
+                        <td>
+                          <div className="name-cell">{row.client_name}</div>
+                        </td>
                         <td>
                           <span className="contract-num">{row.contract_num}</span>
                         </td>
                         <td>
-                          <StatusBadge status={row.status} />
+                          <span className={`status-pill ${row.status === 'Блок' ? 'blocked' : 'active'}`}>{row.status ?? 'Активен'}</span>
                         </td>
-                        <td>{row.manager}</td>
-                        <td className={row.status === 'Блок' ? 'clients-table__tariff clients-table__tariff--muted' : 'clients-table__tariff'}>
-                          {row.tariff === null ? '—' : formatRub(row.tariff)}
+                        <td>
+                          <div className="mgr-cell">
+                            <span className="mini-avatar">{initials(row.manager)}</span>
+                            {row.manager}
+                          </div>
                         </td>
-                        <td className="clients-table__wrap">{formatUnpaidPeriods(row.unpaid_periods)}</td>
-                        <td className="drill-table__reason">{row.block_reason ?? ''}</td>
+                        <td className={row.status === 'Блок' ? 'tariff-muted' : ''}>{row.tariff === null ? '—' : formatRub(row.tariff)}</td>
+                        <td>
+                          {row.unpaid_periods.length > 0 ? (
+                            <div className="unpaid-chips">
+                              {row.unpaid_periods.map((p) => (
+                                <span key={p.period_start} className="unpaid-chip" title={formatMonthFull(p.period_start)}>
+                                  {formatUnpaidChip(p)}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="no-unpaid">—</span>
+                          )}
+                        </td>
+                        <td className="chev">›</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            )}
-          </>
-        )}
-      </div>
+            </div>
+          )}
+        </>
+      )}
     </div>
   )
 }

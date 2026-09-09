@@ -12,9 +12,9 @@ function ContractRow({ contract, sign, showReason }: { contract: MovementContrac
         </div>
         {showReason &&
           (hasReason(contract.reason) ? (
-            <div className="movement-list__reason">{contract.reason}</div>
+            <span className="reason ok">{contract.reason}</span>
           ) : (
-            <div className="movement-list__reason movement-list__reason--missing">⚠ причина не указана</div>
+            <span className="reason missing">причина не указана</span>
           ))}
       </div>
       <span className={`movement-list__amount movement-list__amount--${sign}`}>
@@ -89,17 +89,22 @@ interface MovementColumnsProps {
   showReason?: boolean
   /** Текст пустой колонки — по умолчанию «Нет»; для текущего незакрытого месяца — «Пока нет». */
   emptyMessage?: string
+  /** Шаг D.4d: колонки друг под другом (а не рядом) — только внутри узкого
+   * slideover, где рядом тесно и причине оттока не хватает ширины для переноса.
+   * Дашбордная панель «почему MRR изменился» это не передаёт — там 2 колонки как есть. */
+  stacked?: boolean
 }
 
 /** Тело «две колонки (Пришли +/Отток −) + строка итога» — без переключателя
  * и без карточки-обёртки, чтобы переиспользоваться и панелью «почему», и
  * drill-through по карточкам «Чистый приток»/«Чистое движение MRR». */
-export function MovementColumns({ movement, grouped, managers, colorMap, showReason, emptyMessage }: MovementColumnsProps) {
+export function MovementColumns({ movement, grouped, managers, colorMap, showReason, emptyMessage, stacked }: MovementColumnsProps) {
   return (
     <>
-      <div className="movement-panel__columns">
+      <div className={`movement-panel__columns${stacked ? ' movement-panel__columns--stacked' : ''}`}>
         <div className="movement-col movement-col--new">
           <div className="movement-col__title">Пришли / возобновили (+)</div>
+          <div className="movement-col__total">{formatSignedRub(movement.new_mrr)}</div>
           <ColumnContent
             contracts={movement.new_contracts}
             sign="pos"
@@ -111,6 +116,7 @@ export function MovementColumns({ movement, grouped, managers, colorMap, showRea
         </div>
         <div className="movement-col movement-col--churn">
           <div className="movement-col__title">Отток (−)</div>
+          <div className="movement-col__total">{formatRub(movement.churn_mrr)}</div>
           <ColumnContent
             contracts={movement.churn_contracts}
             sign="neg"

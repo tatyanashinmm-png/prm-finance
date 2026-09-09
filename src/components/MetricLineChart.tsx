@@ -69,7 +69,7 @@ function makeClosedDot(color: string, onPointClick?: (periodStart: string) => vo
     return (
       <g style={onPointClick ? { cursor: 'pointer' } : undefined} onClick={() => onPointClick?.(point.period_start)}>
         {onPointClick && <circle cx={cx} cy={cy} r={10} fill="transparent" />}
-        {isAnchor && <circle cx={cx} cy={cy} r={7} fill="none" stroke="var(--color-orange)" strokeWidth={2} />}
+        {isAnchor && <circle cx={cx} cy={cy} r={7} fill="none" stroke="var(--teal)" strokeWidth={2} />}
         <circle cx={cx} cy={cy} r={3} fill={color} />
       </g>
     )
@@ -85,9 +85,9 @@ function makeTrendDot(color: string, onPointClick?: (periodStart: string) => voi
     return (
       <g style={onPointClick ? { cursor: 'pointer' } : undefined} onClick={() => onPointClick?.(point.period_start)}>
         {onPointClick && <circle cx={cx} cy={cy} r={10} fill="transparent" />}
-        {isAnchor && <circle cx={cx} cy={cy} r={9} fill="none" stroke="var(--color-orange)" strokeWidth={2} />}
-        <circle cx={cx} cy={cy} r={5} fill="var(--color-surface)" stroke={color} strokeWidth={2} />
-        <text x={cx} y={cy - 14} textAnchor="middle" fontSize={11} fill="var(--color-text-secondary)">
+        {isAnchor && <circle cx={cx} cy={cy} r={9} fill="none" stroke="var(--teal)" strokeWidth={2} />}
+        <circle cx={cx} cy={cy} r={5} fill="var(--card)" stroke={color} strokeWidth={2} />
+        <text x={cx} y={cy - 14} textAnchor="middle" fontSize={11} fill="var(--muted)">
           в процессе
         </text>
       </g>
@@ -113,7 +113,7 @@ export function MetricLineChart({
   months,
   metricLabel,
   getValue,
-  color = '#0C39FF',
+  color = '#4F46E5',
   showLabels,
   onPointClick,
   anchorPeriod,
@@ -132,12 +132,12 @@ export function MetricLineChart({
     <div className="chart-scroll">
       <ResponsiveContainer width="100%" height={360} minWidth={Math.max(360, data.length * 44)}>
         <LineChart data={data} margin={{ top: 24, right: 16, left: 0, bottom: 32 }}>
-          <CartesianGrid stroke="var(--color-border)" vertical={false} />
+          <CartesianGrid stroke="var(--line)" vertical={false} />
           <XAxis
             dataKey="period_start"
             tickFormatter={formatMonthShort}
-            tick={{ fontSize: 11, fill: 'var(--color-text-secondary)' }}
-            axisLine={{ stroke: 'var(--color-border)' }}
+            tick={{ fontSize: 11, fill: 'var(--muted)' }}
+            axisLine={{ stroke: 'var(--line)' }}
             tickLine={false}
             interval={0}
             angle={-40}
@@ -146,13 +146,13 @@ export function MetricLineChart({
           />
           <YAxis
             tickFormatter={(v: number) => formatCompactRub(v)}
-            tick={{ fontSize: 12, fill: 'var(--color-text-secondary)' }}
+            tick={{ fontSize: 12, fill: 'var(--muted)' }}
             axisLine={false}
             tickLine={false}
             width={72}
           />
           <Tooltip content={ChartTooltip} />
-          {hasAnchor && <ReferenceLine x={anchorPeriod ?? undefined} stroke="var(--color-orange)" strokeDasharray="3 3" />}
+          {hasAnchor && <ReferenceLine x={anchorPeriod ?? undefined} stroke="var(--teal)" strokeDasharray="3 3" />}
           <Line
             type="monotone"
             dataKey="valueClosed"
@@ -168,7 +168,7 @@ export function MetricLineChart({
                 dataKey="valueClosed"
                 position="top"
                 formatter={(v) => (typeof v === 'number' ? formatCompactRub(v) : '')}
-                style={{ fontSize: 11, fill: 'var(--color-text-secondary)' }}
+                style={{ fontSize: 11, fill: 'var(--muted)' }}
               />
             )}
           </Line>
