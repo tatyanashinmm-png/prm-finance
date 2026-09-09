@@ -89,15 +89,19 @@ interface MovementColumnsProps {
   showReason?: boolean
   /** Текст пустой колонки — по умолчанию «Нет»; для текущего незакрытого месяца — «Пока нет». */
   emptyMessage?: string
+  /** Шаг D.4d: колонки друг под другом (а не рядом) — только внутри узкого
+   * slideover, где рядом тесно и причине оттока не хватает ширины для переноса.
+   * Дашбордная панель «почему MRR изменился» это не передаёт — там 2 колонки как есть. */
+  stacked?: boolean
 }
 
 /** Тело «две колонки (Пришли +/Отток −) + строка итога» — без переключателя
  * и без карточки-обёртки, чтобы переиспользоваться и панелью «почему», и
  * drill-through по карточкам «Чистый приток»/«Чистое движение MRR». */
-export function MovementColumns({ movement, grouped, managers, colorMap, showReason, emptyMessage }: MovementColumnsProps) {
+export function MovementColumns({ movement, grouped, managers, colorMap, showReason, emptyMessage, stacked }: MovementColumnsProps) {
   return (
     <>
-      <div className="movement-panel__columns">
+      <div className={`movement-panel__columns${stacked ? ' movement-panel__columns--stacked' : ''}`}>
         <div className="movement-col movement-col--new">
           <div className="movement-col__title">Пришли / возобновили (+)</div>
           <div className="movement-col__total">{formatSignedRub(movement.new_mrr)}</div>

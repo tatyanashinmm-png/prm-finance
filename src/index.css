@@ -904,6 +904,15 @@ input {
   gap: 24px;
 }
 
+/* Шаг D.4d: только внутри slideover (узкая панель) — колонки друг под
+   другом, каждая на всю ширину, иначе причине оттока некуда переноситься.
+   Дашбордная панель «почему MRR изменился» этот класс не получает и
+   остаётся 2 колонки рядом (см. MovementColumns.tsx, проп stacked). */
+.movement-panel__columns--stacked {
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
 /* Шаг D.4c: колонка движения — сама по себе карточка (мокап
    dashboard-overview.html: .movement-col), не общая обёртка сверху. */
 .movement-col {
@@ -1003,12 +1012,14 @@ input {
    и перенос, но тот же цветовой язык (лавандовый/красный на новых токенах). */
 .reason {
   display: inline-block;
+  max-width: 100%;
   margin-top: 4px;
   font-size: 11px;
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 999px;
   white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .reason.ok {
@@ -2588,12 +2599,17 @@ table.hist-table tr.row-unpaid td {
   color: var(--text);
 }
 
+/* Шаг D.4d: align-items: start, а не stretch — иначе Grid растягивает
+   компактные карточки под высоту hero (там спарклайн, он выше остальных),
+   а .kpi-card (flex-column, justify-content: space-between) в ответ
+   раздвигает свой контент на всю эту лишнюю высоту — оттуда «плавающий»
+   контент и пустоты. Каждая карточка теперь по высоте своего контента. */
 .kpi-row {
   display: grid;
   grid-template-columns: 1.4fr repeat(5, 1fr);
   gap: 16px;
   margin-bottom: 18px;
-  align-items: stretch;
+  align-items: start;
 }
 
 .hero-kpi {
@@ -2771,13 +2787,15 @@ table.hist-table tr.row-unpaid td {
 }
 
 /* Ширина шире мокапных 460px — у нас в панели таблица + поиск + группировка,
-   460px было бы тесно. */
+   460px было бы тесно. Шаг D.4d: 600 -> 660px — движение (Пришли/Отток)
+   стало вертикальной раскладкой (см. .movement-panel__columns--stacked
+   ниже), и на 660px причине оттока хватает места без гор. скролла. */
 .drilldown {
   position: fixed;
   top: 0;
   right: 0;
   height: 100vh;
-  width: 600px;
+  width: 660px;
   max-width: 92vw;
   background: var(--card);
   box-shadow: var(--shadow-pop);

@@ -176,6 +176,7 @@ export function MovementDrillThrough({
               colorMap={colorMap}
               showReason
               emptyMessage={emptyMessage}
+              stacked
             />
           )}
         </>
